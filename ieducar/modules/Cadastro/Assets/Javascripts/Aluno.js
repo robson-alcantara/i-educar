@@ -196,11 +196,11 @@ var newSubmitForm = function (event) {
         return codigoInepInvalido();
     }
 
-    if ($j('#deficiencias').val().length > 1) {
-        if ($j('#url_laudo_medico_obrigatorio').length > 0 && $j('#url_laudo_medico').val().length < 1) {
-            return laudoMedicoObrigatorio();
-        }
-    }
+//    if ($j('#deficiencias').val().length > 1) {
+//        if ($j('#url_laudo_medico_obrigatorio').length > 0 && $j('#url_laudo_medico').val().length < 1) {
+//            return laudoMedicoObrigatorio();
+//        }
+//    }
 
     var tipoCertidaoNascimento = ($j('#tipo_certidao_civil').val() == 'certidao_nascimento_novo_formato');
     var tipoCertidaoCasamento = ($j('#tipo_certidao_civil').val() == 'certidao_casamento_novo_formato');
