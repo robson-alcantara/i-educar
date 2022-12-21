@@ -27,7 +27,6 @@ class LegacyStudentDescriptiveOpinion extends Model
      */
     public $timestamps = false;
 
-
     /**
      * @return BelongsTo
      */
@@ -69,5 +68,10 @@ class LegacyStudentDescriptiveOpinion extends Model
     public function descriptiveOpinionByDiscipline()
     {
         return $this->hasMany(LegacyDisciplineDescriptiveOpinion::class, 'parecer_aluno_id');
+    }
+
+    public function generalDescriptiveOpinion()
+    {
+        return $this->hasMany(LegacyGeneralDescriptiveOpinion::class, 'parecer_aluno_id');
     }
 }

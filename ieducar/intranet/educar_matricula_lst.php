@@ -1,21 +1,6 @@
 <?php
 
-require_once 'include/clsBase.inc.php';
-require_once 'include/clsListagem.inc.php';
-require_once 'include/clsBanco.inc.php';
-require_once 'include/pmieducar/geral.inc.php';
-
-class clsIndexBase extends clsBase
-{
-    public function Formular()
-    {
-        $this->SetTitulo("{$this->_instituicao} i-Educar - Matr&iacute;cula");
-        $this->processoAp = '578';
-    }
-}
-
-class indice extends clsListagem
-{
+return new class extends clsListagem {
     /**
      * Titulo no topo da pagina
      *
@@ -71,7 +56,7 @@ class indice extends clsListagem
 
     public function Gerar()
     {
-        $this->titulo = 'Matr&iacute;cula - Listagem';
+        $this->titulo = 'Matrícula - Listagem';
 
         foreach ($_GET as $var => $val) { // passa todos os valores obtidos no GET para atributos do objeto
             $this->$var = ($val === '') ? null : $val;
@@ -88,7 +73,7 @@ class indice extends clsListagem
             'Matrícula',
             'Situação',
             'Turma',
-            'S&eacute;rie',
+            'Série',
             'Curso'
         ];
 
@@ -97,7 +82,7 @@ class indice extends clsListagem
 
         if ($nivel_usuario == 1) {
             $lista_busca[] = 'Escola';
-            $lista_busca[] = 'Institui&ccedil;&atilde;o';
+            $lista_busca[] = 'Instituição';
         } elseif ($nivel_usuario == 2) {
             $lista_busca[] = 'Escola';
         }
@@ -246,31 +231,22 @@ class indice extends clsListagem
 
         if ($obj_permissoes->permissao_cadastra(578, $this->pessoa_logada, 7)) {
             $this->acao = "go(\"educar_matricula_cad.php?ref_cod_aluno={$this->ref_cod_aluno}\")";
-            $this->nome_acao = 'Nova Matr&iacute;cula';
+            $this->nome_acao = 'Nova Matrícula';
         }
 
         $this->array_botao[] = 'Voltar';
         $this->array_botao_url[] = "educar_aluno_det.php?cod_aluno={$this->ref_cod_aluno}";
         $this->largura = '100%';
     }
-}
 
-$pagina = new clsIndexBase();
-$miolo = new indice();
+    public function makeExtra()
+    {
+        return file_get_contents(__DIR__ . '/scripts/extra/educar-matricula-abandono-cad.js');
+    }
 
-$pagina->addForm($miolo);
-$pagina->MakeAll();
-
-?>
-
-<script>
-
-    document.getElementById('ref_cod_escola').onchange = function () {
-        getEscolaCurso();
-    };
-
-    document.getElementById('ref_cod_curso').onchange = function () {
-        getEscolaCursoSerie();
-    };
-
-</script>
+    public function Formular()
+    {
+        $this->title = 'Matrícula';
+        $this->processoAp = '578';
+    }
+};

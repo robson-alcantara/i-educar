@@ -29,6 +29,7 @@ class Registro30 extends AbstractRegistro
 
     /**
      * @param $schoolId
+     *
      * @return Registro30Model[]
      */
     public function getData($schoolId)
@@ -44,7 +45,9 @@ class Registro30 extends AbstractRegistro
         $arrayEmployeeId = $this->getArrayEmployeeId();
         $employeeData = $this->repository->getEmployeeDataForRecord30($arrayEmployeeId);
         foreach ($employeeData as $data) {
-            $data->email = strtoupper($data->email);
+            $data->posGraduacaoNaoPossui = empty($data->posGraduacoes) ? '1' : '';
+            $data->posGraduacoes = $this->formatPosGraduateToArray($data->posGraduacoes);
+            $data->email = mb_strtoupper($data->email);
             $this->model = $this->modelArray[$data->codigoPessoa];
             $this->hydrateModel($data);
             $this->modelArray[$data->codigoPessoa] = $this->model;
@@ -58,22 +61,35 @@ class Registro30 extends AbstractRegistro
             $this->modelArray[$data->codigoPessoa] = $this->model;
         }
 
-        $unconsideredKnowledgeArea = [27, 17, 32, 99];
-
         foreach ($this->modelArray as &$record) {
             $record->formacaoAnoConclusao = Portabilis_Utils_Database::pgArrayToArray($record->formacaoAnoConclusao);
             $record->formacaoCurso = Portabilis_Utils_Database::pgArrayToArray($record->formacaoCurso);
             $record->formacaoInstituicao = Portabilis_Utils_Database::pgArrayToArray($record->formacaoInstituicao);
             $record->formacaoComponenteCurricular = Portabilis_Utils_Database::pgArrayToArray($record->formacaoComponenteCurricular);
-            $record->formacaoComponenteCurricular = array_diff($record->formacaoComponenteCurricular, $unconsideredKnowledgeArea);
+            $record->formacaoComponenteCurricular = $this->validaFormacaoComponenteCurricular($record->formacaoComponenteCurricular);
         }
 
         return $this->modelArray;
     }
 
+    private function validaFormacaoComponenteCurricular($componentes)
+    {
+        $anulaProximoComponente = false;
+        $componentesDesconsiderados = [32, 99];
+
+        foreach ($componentes as $key => $componente) {
+            if ($anulaProximoComponente === true || (int) $componente === 0 || in_array($componente, $componentesDesconsiderados)) {
+                $anulaProximoComponente = true;
+                $componentes[$key] = null;
+            }
+        }
+
+        return $componentes;
+    }
+
     /**
      * @param ItemOfRegistro30[] $array
-     * @param string $type
+     * @param string             $type
      */
     public function setArrayDataByType($array, $type)
     {
@@ -103,8 +119,10 @@ class Registro30 extends AbstractRegistro
 
     /**
      * @param $escolaId
-     * @return Registro30Model[]
+     *
      * @throws \Exception
+     *
+     * @return Registro30Model[]
      */
     public function getExportFormatData($escolaId)
     {
@@ -169,5 +187,16 @@ class Registro30 extends AbstractRegistro
         }
 
         return $arrayId;
+    }
+
+    private function formatPosGraduateToArray($posGraduate)
+    {
+        $posGraduate = explode('}","{', $posGraduate);
+
+        foreach ($posGraduate as $key => $pos) {
+            $posGraduate[$key] = json_decode('{' . str_replace(['\\', '{"{', '}"}'], '', $pos) . '}');
+        }
+
+        return $posGraduate;
     }
 }

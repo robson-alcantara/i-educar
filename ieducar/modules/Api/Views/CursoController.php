@@ -1,10 +1,7 @@
 <?php
 
-require_once 'Portabilis/Controller/ApiCoreController.php';
-require_once 'Portabilis/Array/Utils.php';
-require_once 'Portabilis/String/Utils.php';
-require_once 'Portabilis/Array/Utils.php';
-require_once 'Portabilis/Date/Utils.php';
+use App\Models\LegacyCourse;
+use App\Models\LegacySchoolCourse;
 
 class CursoController extends ApiCoreController
 {
@@ -12,6 +9,16 @@ class CursoController extends ApiCoreController
     protected function canGetCursos()
     {
         return $this->validatesPresenceOf('instituicao_id');
+    }
+
+    protected function canGetCursosDaEscola()
+    {
+        return $this->validatesPresenceOf('escola_id');
+    }
+
+    protected function canGetDadosDoCurso()
+    {
+        return $this->validatesPresenceOf('curso_id');
     }
 
     protected function getCursos()
@@ -30,13 +37,15 @@ class CursoController extends ApiCoreController
 
             if ($escolaId) {
                 if (is_array($escolaId)) {
-                    $escolaId = implode(",", $escolaId);
+                    $escolaId = implode(',', $escolaId);
                 }
 
                 $sql = "
                     SELECT DISTINCT
                         c.cod_curso,
-                        c.nm_curso,
+                        CASE WHEN (c.descricao is not null and c.descricao <> '')
+                        THEN c.nm_curso||' ('||c.descricao||')'
+                        ELSE c.nm_curso END as nm_curso,
                         (
                             CASE c.updated_at >= ec.updated_at WHEN TRUE THEN
                                 c.updated_at
@@ -71,13 +80,14 @@ class CursoController extends ApiCoreController
                         : ' AND $2 = ANY(ec.anos_letivos) ';
                 }
 
-                $sql .= ' ORDER BY updated_at, c.nm_curso ASC ';
+                $sql .= ' ORDER BY updated_at, nm_curso ASC ';
             } else {
-
-                $sql = "
+                $sql = '
                     SELECT
                         cod_curso,
-                        nm_curso,
+                        CASE WHEN (curso.descricao is not null and curso.descricao <> \'\')
+                        THEN curso.nm_curso||\' (\'||curso.descricao||\')\'
+                        ELSE curso.nm_curso END as nm_curso,
                         updated_at,
                         (
                             CASE ativo WHEN 1 THEN
@@ -89,9 +99,9 @@ class CursoController extends ApiCoreController
                     FROM pmieducar.curso
                     WHERE TRUE
                         AND ref_cod_instituicao = $1
-                ";
+                ';
 
-                if ($ativo ) {
+                if ($ativo) {
                     $sql .= ' AND curso.ativo = 1';
                 }
 
@@ -105,11 +115,11 @@ class CursoController extends ApiCoreController
 
             $cursos = $this->fetchPreparedQuery($sql, $params);
 
-            $sqlSerie = "SELECT DISTINCT s.cod_serie, s.nm_serie
+            $sqlSerie = 'SELECT DISTINCT s.cod_serie, s.nm_serie
                     FROM pmieducar.serie s
                     INNER JOIN pmieducar.escola_serie es ON es.ref_cod_serie = s.cod_serie
                     WHERE es.ativo = 1
-                    AND s.ativo = 1";
+                    AND s.ativo = 1';
             if ($escolaId) {
                 $sqlSerie .= " AND es.ref_cod_escola IN ({$escolaId}) ";
             }
@@ -129,12 +139,12 @@ class CursoController extends ApiCoreController
                 if ($getSeries) {
                     $series = $this->fetchPreparedQuery($sqlSerie . " AND s.ref_cod_curso = {$curso['cod_curso']} ORDER BY s.nm_serie ASC", $paramsSerie);
 
-                    $attrs = array('cod_serie' => 'id', 'nm_serie' => 'nome');
+                    $attrs = ['cod_serie' => 'id', 'nm_serie' => 'nome'];
                     foreach ($series as &$serie) {
                         if ($getTurmas && is_numeric($ano) && !empty($escolaId)) {
                             $turmas = $this->fetchPreparedQuery($sqlTurma . " AND t.ref_cod_curso = {$curso['cod_curso']} AND t.ref_ref_cod_serie = {$serie['cod_serie']}
-                  " . (is_numeric($turnoId) ? " AND t.turma_turno_id = {$turnoId} " : "") . "
-               ORDER BY t.nm_turma ASC");
+                  " . (is_numeric($turnoId) ? " AND t.turma_turno_id = {$turnoId} " : '') . '
+               ORDER BY t.nm_turma ASC');
 
                             $attrs['turmas'] = 'turmas';
                             $serie['turmas'] = Portabilis_Array_Utils::filterSet($turmas, ['cod_turma', 'nm_turma', 'escola_id', 'turma_turno_id', 'ano']);
@@ -166,7 +176,9 @@ class CursoController extends ApiCoreController
         $instituicaoId = $this->getRequest()->instituicao_id;
 
         $sql = "SELECT cod_curso AS id,
-                   nm_curso AS nome
+                   CASE WHEN (curso.descricao is not null or curso.descricao <> '')
+                   THEN curso.nm_curso||' ('||curso.descricao||')'
+                   ELSE curso.nm_curso END as nome
               FROM pmieducar.curso
              INNER JOIN pmieducar.instituicao ON (instituicao.cod_instituicao = curso.ref_cod_instituicao)
              WHERE curso.ativo = 1
@@ -193,6 +205,38 @@ class CursoController extends ApiCoreController
         return $modalidade;
     }
 
+    protected function getCursosDaEscola()
+    {
+        if ($this->canGetCursosDaEscola()) {
+            $escolaId = $this->getRequest()->escola_id;
+            $ano = $this->getRequest()->ano;
+
+            $cursos = LegacySchoolCourse::query()
+                ->with('course')
+                ->where('ref_cod_escola', $escolaId)
+                ->whereRaw('? = ANY(anos_letivos)', [$ano])
+                ->get()
+                ->pluck('course.nm_curso', 'ref_cod_curso')
+                ->toArray();
+
+            return ['cursos' => $cursos];
+        }
+    }
+
+    protected function getDadosDoCurso()
+    {
+        if ($this->canGetDadosDoCurso()) {
+            $cursoId = $this->getRequest()->curso_id;
+
+            $dadosCurso = LegacyCourse::query()
+                ->where('cod_curso', $cursoId)
+                ->first()
+                ->toArray();
+
+            return ['dados_curso' => $dadosCurso];
+        }
+    }
+
     public function Gerar()
     {
         if ($this->isRequestFor('get', 'cursos')) {
@@ -201,6 +245,10 @@ class CursoController extends ApiCoreController
             $this->appendResponse($this->getModalidadeCurso());
         } elseif ($this->isRequestFor('get', 'cursos-multiple-search')) {
             $this->appendResponse($this->getCursosMultipleSearch());
+        }  elseif ($this->isRequestFor('get', 'cursos-da-escola')) {
+            $this->appendResponse($this->getCursosDaEscola());
+        } elseif ($this->isRequestFor('get', 'dados-curso')) {
+            $this->appendResponse($this->getDadosDoCurso());
         } else {
             $this->notImplementedOperationError();
         }

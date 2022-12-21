@@ -41,7 +41,9 @@ class NotificationService
             'user_id' => $userId,
         ]);
 
-        event(new NotificationEvent($notification, DB::getDefaultConnection()));
+        $url = (new NotificationUrlPresigner())->getNotificationUrl($notification);
+
+        event(new NotificationEvent($notification, $url, DB::getDefaultConnection()));
     }
 
     /**
@@ -54,7 +56,7 @@ class NotificationService
      */
     public function createByUserLevel($level, $text, $link, $type)
     {
-        $users = LegacyUser::whereHas('type', function($typeQuery) use ($level) {
+        $users = LegacyUser::whereHas('type', function ($typeQuery) use ($level) {
             $typeQuery->where('nivel', $level);
         })->get();
 

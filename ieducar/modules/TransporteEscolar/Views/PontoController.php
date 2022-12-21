@@ -2,10 +2,6 @@
 
 use iEducar\Modules\Addressing\LegacyAddressingFields;
 
-require_once 'App/Model/ZonaLocalizacao.php';
-require_once 'lib/Portabilis/Controller/Page/EditController.php';
-require_once 'Usuario/Model/FuncionarioDataMapper.php';
-
 class PontoController extends Portabilis_Controller_Page_EditController
 {
     use LegacyAddressingFields;
@@ -66,7 +62,7 @@ class PontoController extends Portabilis_Controller_Page_EditController
 
         // descricao
         $options = [
-            'label' => Portabilis_String_Utils::toLatin1($this->_getLabel('desc')),
+            'label' => $this->_getLabel('desc'),
             'required' => true,
             'size' => 50,
             'max_length' => 70

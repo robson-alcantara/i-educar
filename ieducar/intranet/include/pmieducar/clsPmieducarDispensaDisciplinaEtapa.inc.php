@@ -2,8 +2,6 @@
 
 use iEducar\Legacy\Model;
 
-require_once 'include/pmieducar/geral.inc.php';
-
 class clsPmieducarDispensaDisciplinaEtapa extends Model
 {
     public $ref_cod_dispensa;
@@ -70,6 +68,7 @@ class clsPmieducarDispensaDisciplinaEtapa extends Model
     {
         if (is_numeric($this->ref_cod_dispensa) && is_numeric($this->etapa)) {
             $db = new clsBanco();
+            $gruda = '';
             $set = '';
 
             if (is_numeric($this->etapa)) {

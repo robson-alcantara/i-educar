@@ -1,5 +1,7 @@
 @extends('layout.default')
 
+@inject('presigner', App\Services\UrlPresigner::class)
+
 @push('styles')
   <link rel="stylesheet" type="text/css" href="{{ Asset::get('css/ieducar.css') }}" />
 @endpush
@@ -22,7 +24,7 @@
             @if(empty($export->url) && $export->created_at < now()->subMinutes(30))
               O arquivo não pode ser exportado
               @elseif($export->url)
-              <a href="{{ $export->url }}" style="font-size: 14px">Fazer download</a>
+              <a href="{{ $presigner->getPresignedUrl($export->url) }}" style="font-size: 14px">Fazer download</a>
             @else
               Aguardando a exportação do arquivo ser finalizada
             @endif
@@ -44,6 +46,6 @@
   </div>
 
   <div style="text-align: center; margin-top: 30px; margin-bottom: 30px">
-    <a href="{{ route('export.form') }}" class="btn-green">Nova Exportação</a>
+    <a href="{{ Asset::get('/exportacoes/novo') }}" class="btn-green">Nova Exportação</a>
   </div>
 @endsection

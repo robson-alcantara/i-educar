@@ -2,57 +2,28 @@
 
 use App\Models\Employee;
 use App\Models\LegacyInstitution;
-use App\Models\LegacySchoolClass;
 use App\Services\iDiarioService;
 use iEducar\Modules\Educacenso\Model\TipoAtendimentoTurma;
 use iEducar\Modules\Educacenso\Model\TipoMediacaoDidaticoPedagogico;
+use iEducar\Modules\Educacenso\Model\UnidadesCurriculares;
 use iEducar\Modules\Servidores\Model\FuncaoExercida;
 use iEducar\Support\View\SelectOptions;
 
-require_once 'include/clsBase.inc.php';
-require_once 'include/clsCadastro.inc.php';
-require_once 'include/clsBanco.inc.php';
-require_once 'include/pmieducar/geral.inc.php';
-require_once 'include/modules/clsModulesProfessorTurma.inc.php';
-require_once 'Portabilis/String/Utils.php';
-require_once 'Portabilis/Utils/Database.php';
-require_once 'lib/Portabilis/Array/Utils.php';
-require_once 'ComponenteCurricular/Model/ComponenteDataMapper.php';
-
-class clsIndexBase extends clsBase
-{
-    public function Formular()
-    {
-        $this->SetTitulo($this->_instituicao . ' Servidores - Servidor vínculo turma');
-        $this->processoAp = 635;
-    }
-}
-
-class indice extends clsCadastro
-{
+return new class extends clsCadastro {
     public $pessoa_logada;
-
     public $id;
-
     public $ano;
-
     public $servidor_id;
-
     public $funcao_exercida;
-
     public $tipo_vinculo;
-
     public $permite_lancar_faltas_componente;
-
     public $ref_cod_instituicao;
-
     public $ref_cod_escola;
-
     public $ref_cod_curso;
-
     public $ref_cod_serie;
-
     public $ref_cod_turma;
+    public $unidades_curriculares;
+    public $turma_estrutura_curricular;
 
     public function Inicializar()
     {
@@ -94,6 +65,11 @@ class indice extends clsCadastro
 
                 $this->ref_cod_curso = $obj_turma['ref_cod_curso'];
                 $this->ref_cod_serie = $obj_turma['ref_ref_cod_serie'];
+                $this->turma_estrutura_curricular = $obj_turma['estrutura_curricular'];
+
+                if (is_string($registro['unidades_curriculares'])) {
+                    $this->unidades_curriculares = explode(',', str_replace(['{', '}'], '', $registro['unidades_curriculares']));
+                }
 
                 if (!isset($_GET['copia'])) {
                     $retorno = 'Editar';
@@ -135,8 +111,7 @@ class indice extends clsCadastro
         $this->campoOculto('id', $this->id);
         $this->campoOculto('servidor_id', $this->servidor_id);
         $this->inputsHelper()->dynamic('ano', ['value' => (is_null($ano) ? date('Y') : $ano)]);
-        $this->inputsHelper()->dynamic(['instituicao', 'escola', 'curso', 'serie']);
-        $this->inputsHelper()->dynamic(['turma'], ['required' => !is_null($this->ref_cod_turma)]);
+        $this->inputsHelper()->dynamic(['instituicao', 'escola', 'curso', 'serie', 'turma']);
 
         $obrigarCamposCenso = $this->validarCamposObrigatoriosCenso();
         $this->campoOculto('obrigar_campos_censo', (int) $obrigarCamposCenso);
@@ -148,6 +123,19 @@ class indice extends clsCadastro
             'value' => $this->funcao_exercida
         ];
         $this->inputsHelper()->select('funcao_exercida', $options);
+
+        $helperOptions = ['objectName' => 'unidades_curriculares'];
+        $options = [
+            'label' => 'Unidade(s) curricular(es) que leciona',
+            'label_hint' => 'Campo referente a unidade(s) curricular(es) da turma',
+            'size' => 50,
+            'required' => false,
+            'options' => [
+                'values' => $this->unidades_curriculares,
+                'all_values' => UnidadesCurriculares::getDescriptiveValues()
+            ]
+        ];
+        $this->inputsHelper()->multipleSearchCustom('', $options, $helperOptions);
 
         $resources = SelectOptions::tiposVinculoServidor();
         $options = [
@@ -184,7 +172,7 @@ class indice extends clsCadastro
 
         $this->inputsHelper()->checkbox('permite_lancar_faltas_componente', $options);
         $this->inputsHelper()->checkbox('selecionar_todos', ['label' => 'Selecionar/remover todos']);
-        $this->inputsHelper()->multipleSearchComponenteCurricular(null, ['label' => 'Componentes lecionados', 'required' => true], ['searchForArea' => true]);
+        $this->inputsHelper()->multipleSearchComponenteCurricular(null, ['label' => 'Componentes lecionados', 'required' => true], ['searchForArea' => true, 'allDisciplinesMulti' => true]);
 
         $scripts = [
             '/modules/Cadastro/Assets/Javascripts/ServidorVinculoTurma.js'
@@ -204,34 +192,27 @@ class indice extends clsCadastro
         $obj_permissoes = new clsPermissoes();
         $obj_permissoes->permissao_cadastra(635, $this->pessoa_logada, 7, $backUrl);
 
-        if ($this->ref_cod_turma) {
-            if (!$this->validaCamposCenso()) {
-                return false;
-            }
-
-            if (!$this->validaVinculoEscola()) {
-                return false;
-            }
-
-            $professorTurma = new clsModulesProfessorTurma(null, $this->ano, $this->ref_cod_instituicao, $this->servidor_id, $this->ref_cod_turma, $this->funcao_exercida, $this->tipo_vinculo, $this->permite_lancar_faltas_componente, $this->turma_turno_id);
-            if ($professorTurma->existe2()) {
-                $this->mensagem .= 'Não é possível cadastrar pois já existe um vínculo com essa turma.<br>';
-
-                return false;
-            } else {
-                $professorTurmaId = $professorTurma->cadastra();
-                $professorTurma->gravaComponentes($professorTurmaId, $this->componentecurricular);
-            }
-        } else {
-            $turmas = new clsPmieducarTurmas();
-            foreach ($turmas->lista(null, null, null, $this->ref_cod_serie, $this->ref_cod_escola, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, $this->ano) as $reg) {
-                $professorTurma = new clsModulesProfessorTurma(null, $this->ano, $this->ref_cod_instituicao, $this->servidor_id, $reg['cod_turma'], $this->funcao_exercida, $this->tipo_vinculo, $this->permite_lancar_faltas_componente, $this->turma_turno_id);
-                // FIxME entender qual é o objeto correto
-                $professorTurmaId = $obj->cadastra();
-                // FIXME #parameters
-                $professorTurma->gravaComponentes($professorTurmaId, null);
-            }
+        if (!isset($this->ref_cod_turma)) {
+            $this->mensagem = 'É necessário selecionar uma turma';
+            return false;
         }
+
+        if (!$this->validaCamposCenso()) {
+            return false;
+        }
+
+        if (!$this->validaVinculoEscola()) {
+            return false;
+        }
+
+        $professorTurma = new clsModulesProfessorTurma(null, $this->ano, $this->ref_cod_instituicao, $this->servidor_id, $this->ref_cod_turma, $this->funcao_exercida, $this->tipo_vinculo, $this->permite_lancar_faltas_componente, $this->turma_turno_id);
+        if ($professorTurma->existe2()) {
+            $this->mensagem = 'Não é possível cadastrar pois já existe um vínculo com essa turma.<br>';
+            return false;
+        }
+
+        $professorTurmaId = $professorTurma->cadastra();
+        $professorTurma->gravaComponentes($professorTurmaId, $this->componentecurricular);
 
         $this->mensagem .= 'Cadastro efetuado com sucesso.<br>';
         $this->simpleRedirect($backUrl);
@@ -248,6 +229,8 @@ class indice extends clsCadastro
         $obj_permissoes = new clsPermissoes();
         $obj_permissoes->permissao_cadastra(635, $this->pessoa_logada, 7, $backUrl);
 
+        $this->unidades_curriculares = $this->transformArrayInString($this->unidades_curriculares);
+
         $professorTurma = new clsModulesProfessorTurma(
             $this->id,
             $this->ano,
@@ -257,7 +240,8 @@ class indice extends clsCadastro
             $this->funcao_exercida,
             $this->tipo_vinculo,
             $this->permite_lancar_faltas_componente,
-            $this->turma_turno_id
+            $this->turma_turno_id,
+            $this->unidades_curriculares
         );
 
         if (!$this->validaCamposCenso()) {
@@ -340,6 +324,7 @@ class indice extends clsCadastro
         }
 
         $this->mensagem = 'Não é possível cadastrar o vínculo pois o servidor não está alocado na escola selecionada.';
+
         return false;
     }
 
@@ -357,18 +342,30 @@ class indice extends clsCadastro
             FuncaoExercida::DOCENTE_TUTOR_EAD,
         ];
 
+        $etapas_instrutor_educacao_pŕofissional = [30,31,32,33,34,39,40,73,74,64,67,68];
+
+        if ($this->funcao_exercida == FuncaoExercida::INSTRUTOR_EDUCACAO_PROFISSIONAL && (($turma['estrutura_curricular'] && !in_array('2', transformStringFromDBInArray($turma['estrutura_curricular']), true)) || !in_array($turma['etapa_educacenso'],$etapas_instrutor_educacao_pŕofissional, true))){
+           $opcoes = \Str::replaceLast(', ',' ou ',implode(', ',$etapas_instrutor_educacao_pŕofissional));
+           $this->mensagem = "O campo: <b>Função exercida</b> pode ser <b>Instrutor da Educação Profissional</b> apenas quando o campo <b>Estrutura Curricular</b> da turma for: <b>Itinerário formativo</b> e o campo <b>Etapa de ensino</b> for uma das opções: {$opcoes}.";
+
+           return false;
+        }
+
         if ($turma['tipo_mediacao_didatico_pedagogico'] == TipoMediacaoDidaticoPedagogico::EDUCACAO_A_DISTANCIA && !in_array($this->funcao_exercida, $funcoesEad)) {
             $this->mensagem = 'O campo: <b>Função exercida</b> deve ser <b>Docente titular</b> ou <b>Docente tutor</b>, quando o campo: <b>Tipo de mediação didático-pedagógica</b> da turma for: <b>Educação a Distância</b>.';
+
             return false;
         }
 
         if ($turma['tipo_atendimento'] != TipoAtendimentoTurma::ESCOLARIZACAO && $this->funcao_exercida == FuncaoExercida::AUXILIAR_EDUCACIONAL) {
             $this->mensagem = 'O campo: <b>Função exercida</b> não pode ser: <b>Auxiliar/Assistente Educacional</b> quando o tipo de atendimento da turma for: <b>' . TipoAtendimentoTurma::getDescriptiveValues()[$turma['tipo_atendimento']] . '</b>';
+
             return false;
         }
 
         if ($turma['tipo_atendimento'] != TipoAtendimentoTurma::ATIVIDADE_COMPLEMENTAR && $this->funcao_exercida == FuncaoExercida::MONITOR_ATIVIDADE_COMPLEMENTAR) {
             $this->mensagem = 'O campo: <b>Função exercida</b> não pode ser: <b> Profissional/Monitor de Atividade Complementar </b> quando o tipo de atendimento da turma for: <b>' . TipoAtendimentoTurma::getDescriptiveValues()[$turma['tipo_atendimento']] . '</b>';
+
             return false;
         }
 
@@ -380,6 +377,7 @@ class indice extends clsCadastro
      *
      * @param integer $professorId
      * @param integer $turmaId
+     *
      * @return bool
      */
     private function existeLancamentoIDiario($professorId, $turmaId)
@@ -387,7 +385,7 @@ class indice extends clsCadastro
         try {
             /** @var iDiarioService $iDiarioService */
             $iDiarioService = app(iDiarioService::class);
-        } catch (RuntimeException $e) {
+        } catch (RuntimeException) {
             return false;
         }
 
@@ -397,16 +395,15 @@ class indice extends clsCadastro
 
         return false;
     }
-}
 
-// Instancia objeto de página
-$pagina = new clsIndexBase();
+    private function transformArrayInString($value): ?string
+    {
+        return is_array($value) ? implode(',', $value) : null;
+    }
 
-// Instancia objeto de conteúdo
-$miolo = new indice();
-
-// Atribui o conteúdo à  página
-$pagina->addForm($miolo);
-
-// Gera o código HTML
-$pagina->MakeAll();
+    public function Formular()
+    {
+        $this->title = 'Servidores - Servidor vínculo turma';
+        $this->processoAp = 635;
+    }
+};

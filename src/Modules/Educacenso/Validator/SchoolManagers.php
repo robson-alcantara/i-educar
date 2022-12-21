@@ -22,8 +22,8 @@ class SchoolManagers implements EducacensoValidator
 
     /**
      * @param SchoolManagerValueObject[] $valueObject
-     * @param integer $administrativeDependency
-     * @param integer $operatingSituation
+     * @param integer                    $administrativeDependency
+     * @param integer                    $operatingSituation
      */
     public function __construct($valueObject, $administrativeDependency, $operatingSituation)
     {
@@ -67,6 +67,7 @@ class SchoolManagers implements EducacensoValidator
 
     /**
      * @param array $array
+     *
      * @return bool
      */
     private function containsEmptyOrIsNull($array)
@@ -126,9 +127,12 @@ class SchoolManagers implements EducacensoValidator
             return;
         }
 
-        if ($valueObject->roleId == SchoolManagerRole::DIRETOR && empty($valueObject->linkTypeId)) {
+        if ((int) $valueObject->roleId === SchoolManagerRole::DIRETOR &&
+            empty($valueObject->linkTypeId) &&
+            $this->operatingSituation === SituacaoFuncionamento::EM_ATIVIDADE
+        ) {
             $this->valid = false;
-            $this->message[] = 'O campo: <b>Tipo de vínculo</b> deve ser preenchido quando o campo: <b>Cargo</b> for: <b>Diretor</b> e o campo: <b>Dependência administrativa</b> não for: <b>Privada</b>';
+            $this->message[] = 'O campo: <b>Tipo de vínculo</b> deve ser preenchido quando o campo: <b>Situação de funcionamento</b> for: <b>Em atividade<b>, o campo <b>Cargo</b> for: <b>Diretor</b> e o campo: <b>Dependência administrativa</b> não for: <b>Privada</b>';
         }
     }
 
@@ -138,6 +142,7 @@ class SchoolManagers implements EducacensoValidator
         foreach ($this->valueObject as $manager) {
             $individualArray[] = $manager->employeeId;
         }
+
         return $individualArray;
     }
 
@@ -147,6 +152,7 @@ class SchoolManagers implements EducacensoValidator
         foreach ($this->valueObject as $manager) {
             $roleArray[] = $manager->roleId;
         }
+
         return $roleArray;
     }
 }

@@ -7,9 +7,9 @@ use iEducar\Support\Exceptions\Exception;
 
 class MissingStagesException extends Exception
 {
-    const DEFAULT_ERROR = Error::MISSING_STAGE_DEFAULT_ERROR;
-    const TEACHER_ERROR = Error::MISSING_STAGE_TEACHER_ERROR;
-    const COORDINATOR_ERROR = Error::MISSING_STAGE_COORDINATOR_ERROR;
+    public const DEFAULT_ERROR = Error::MISSING_STAGE_DEFAULT_ERROR;
+    public const TEACHER_ERROR = Error::MISSING_STAGE_TEACHER_ERROR;
+    public const COORDINATOR_ERROR = Error::MISSING_STAGE_COORDINATOR_ERROR;
 
     /**
      * @var array
@@ -24,13 +24,13 @@ class MissingStagesException extends Exception
     /**
      * StagesNotInformedByTeacherException constructor.
      *
-     * @param array $missingStages
+     * @param array  $missingStages
      * @param string $stageName
      */
     public function __construct($missingStages, $stageName)
     {
         $this->missingStages = $missingStages;
-        $this->stageName= $stageName;
+        $this->stageName = $stageName;
 
         parent::__construct(
             $this->getExceptionMessage($missingStages),

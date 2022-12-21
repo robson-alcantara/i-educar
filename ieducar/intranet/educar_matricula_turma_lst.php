@@ -1,21 +1,6 @@
 <?php
 
-require_once 'include/clsBase.inc.php';
-require_once 'include/clsListagem.inc.php';
-require_once 'include/clsBanco.inc.php';
-require_once 'include/pmieducar/geral.inc.php';
-
-class clsIndexBase extends clsBase
-{
-    public function Formular()
-    {
-        $this->SetTitulo($this->_instituicao . ' i-Educar - Matricula Turma');
-        $this->processoAp = 578;
-    }
-}
-
-class indice extends clsListagem
-{
+return new class extends clsListagem {
     public $pessoa_logada;
     public $titulo;
     public $limite;
@@ -61,10 +46,10 @@ class indice extends clsListagem
 
         // Busca dados da matricula
         $obj_ref_cod_matricula = new clsPmieducarMatricula();
-        $detalhe_aluno = array_shift($obj_ref_cod_matricula->lista($this->ref_cod_matricula));
+        $matricula = $obj_ref_cod_matricula->lista($this->ref_cod_matricula);
+        $detalhe_aluno = array_shift($matricula);
 
-        $obj_aluno = new clsPmieducarAluno();
-        $det_aluno = array_shift($obj_aluno->lista(
+        $obj_aluno = (new clsPmieducarAluno())->lista(
             $detalhe_aluno['ref_cod_aluno'],
             null,
             null,
@@ -76,8 +61,9 @@ class indice extends clsListagem
             null,
             null,
             1
-        ));
+        );
 
+        $det_aluno = array_shift($obj_aluno);
         $obj_escola = new clsPmieducarEscola(
             $this->ref_cod_escola,
             null,
@@ -91,6 +77,7 @@ class indice extends clsListagem
             null,
             1
         );
+
         $det_escola = $obj_escola->detalhe();
 
         if ($det_escola['nome']) {
@@ -149,8 +136,6 @@ class indice extends clsListagem
 
             $this->exibirBotaoSubmit = false;
         }
-
-        #$this->campoLista('ref_cod_turma_', 'Turma', $opcoes, $this->ref_cod_turma);
 
         // outros filtros
         $this->campoOculto('ref_cod_matricula', $this->ref_cod_matricula);
@@ -244,8 +229,7 @@ class indice extends clsListagem
         }
         $total = $obj_matricula_turma->_total;
 
-        $enturmacoesMatricula = new clsPmieducarMatriculaTurma();
-        $enturmacoesMatricula = $enturmacoesMatricula->lista3(
+        $enturmacoesMatricula = (new clsPmieducarMatriculaTurma())->lista3(
             $this->ref_cod_matricula,
             null,
             null,
@@ -255,32 +239,6 @@ class indice extends clsListagem
             null,
             null,
             1,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            $this->ano_letivo
         );
 
         $turmasThisSerie = $lista;
@@ -314,8 +272,6 @@ class indice extends clsListagem
             $this->limite
         );
 
-        $obj_permissoes = new clsPermissoes();
-
         $this->array_botao[] = 'Voltar';
         $this->array_botao_url[] = "educar_matricula_det.php?cod_matricula={$this->ref_cod_matricula}";
 
@@ -325,31 +281,15 @@ class indice extends clsListagem
             url('intranet/educar_index.php') => 'Escola',
         ]);
     }
-}
 
-// Instancia objeto de página
-$pagina = new clsIndexBase();
-
-// Instancia objeto de conteúdo
-$miolo = new indice();
-
-// Atribui o conteúdo à  página
-$pagina->addForm($miolo);
-
-// Gera o código HTML
-$pagina->MakeAll();
-?>
-<script type="text/javascript">
-    function enturmar(ref_cod_escola, ref_cod_serie, ref_cod_matricula, ref_cod_turma, ano_letivo) {
-        document.formcadastro.method = 'post';
-        document.formcadastro.action = 'educar_matricula_turma_det.php';
-
-        document.formcadastro.ref_cod_escola.value = ref_cod_escola;
-        document.formcadastro.ref_cod_serie.value = ref_cod_serie;
-        document.formcadastro.ref_cod_matricula.value = ref_cod_matricula;
-        document.formcadastro.ref_cod_turma.value = ref_cod_turma;
-        document.formcadastro.ano_letivo.value = ano_letivo;
-
-        document.formcadastro.submit();
+    public function makeExtra()
+    {
+        return file_get_contents(__DIR__ . '/scripts/extra/educar-matricula-turma-lst.js');
     }
-</script>
+
+    public function Formular()
+    {
+        $this->title = 'Matricula Turma';
+        $this->processoAp = 578;
+    }
+};

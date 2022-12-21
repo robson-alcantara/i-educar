@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Menu;
 use App\Models\LegacyUserType;
+use App\Services\MenuCacheService;
 use App\User;
 use Exception;
 use Illuminate\Database\Connection;
@@ -55,6 +56,8 @@ class AccessLevelController extends Controller
         $userType->saveOrFail();
 
         $userType->menus()->syncWithoutDetaching($processes);
+
+        app(MenuCacheService::class)->flushMenuTag($userType->cod_tipo_usuario);
     }
 
     /**
@@ -154,11 +157,11 @@ class AccessLevelController extends Controller
 
     /**
      * @param LegacyUserType $userType
-     * @param Connection $connection
-     *
-     * @return RedirectResponse
+     * @param Connection     $connection
      *
      * @throws Exception
+     *
+     * @return RedirectResponse
      */
     public function delete(LegacyUserType $userType, Connection $connection)
     {

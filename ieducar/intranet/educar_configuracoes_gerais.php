@@ -2,21 +2,7 @@
 
 use Illuminate\Support\Facades\Cache;
 
-require_once 'include/clsBase.inc.php';
-require_once 'include/clsCadastro.inc.php';
-require_once 'Portabilis/Utils/CustomLabel.php';
-
-class clsIndexBase extends clsBase
-{
-    public function Formular()
-    {
-        $this->SetTitulo($this->_instituicao . ' i-Educar - Configura&ccedil;&otilde;es gerais');
-        $this->processoAp = 999873;
-    }
-}
-
-class indice extends clsCadastro
-{
+return new class extends clsCadastro {
     public $pessoa_logada;
 
     public $ref_cod_instituicao;
@@ -308,23 +294,18 @@ class indice extends clsCadastro
             // Reseta o cache de configurações
             Cache::invalidateByTags(['configurations']);
 
-            $this->mensagem .= 'Edi&ccedil;&atilde;o efetuada com sucesso.<br>';
+            $this->mensagem .= 'Edição efetuada com sucesso.<br>';
             $this->simpleRedirect('index.php');
         }
 
-        $this->mensagem = 'Edi&ccedil;&atilde;o n&atilde;o realizada.<br>';
+        $this->mensagem = 'Edição não realizada.<br>';
 
         return false;
     }
-}
-// Instancia objeto de página
-$pagina = new clsIndexBase();
 
-// Instancia objeto de conteúdo
-$miolo = new indice();
-
-// Atribui o conteúdo à  página
-$pagina->addForm($miolo);
-
-// Gera o código HTML
-$pagina->MakeAll();
+    public function Formular()
+    {
+        $this->title = 'Configurações gerais';
+        $this->processoAp = 999873;
+    }
+};

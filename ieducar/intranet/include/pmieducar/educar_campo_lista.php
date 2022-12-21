@@ -1,8 +1,6 @@
 <?php
 
-use Illuminate\Support\Facades\Session;
-
-$pessoa_logada = Session::get('id_pessoa');
+$pessoa_logada = \Illuminate\Support\Facades\Auth::id();
 
 if (!isset($exibe_campo_lista_curso_escola)) {
     $exibe_campo_lista_curso_escola = true;
@@ -55,21 +53,21 @@ if ($nivel_usuario == 1 || $cad_usuario) {
     }
 
     if ($get_escola && $get_biblioteca) {
-        $this->campoLista('ref_cod_instituicao', 'Institui&ccedil;&atilde;o', $opcoes, $this->ref_cod_instituicao, 'getDuploEscolaBiblioteca();', null, null, null, $instituicao_desabilitado, $instituicao_obrigatorio);
+        $this->campoLista('ref_cod_instituicao', 'Instituição', $opcoes, $this->ref_cod_instituicao, 'getDuploEscolaBiblioteca();', null, null, null, $instituicao_desabilitado, $instituicao_obrigatorio);
     } elseif ($get_escola && $get_curso && $get_matricula) {
-        $this->campoLista('ref_cod_instituicao', 'Institui&ccedil;&atilde;o', $opcoes, $this->ref_cod_instituicao, 'getMatricula();', null, null, null, $instituicao_desabilitado, $instituicao_obrigatorio);
+        $this->campoLista('ref_cod_instituicao', 'Instituição', $opcoes, $this->ref_cod_instituicao, 'getMatricula();', null, null, null, $instituicao_desabilitado, $instituicao_obrigatorio);
     } elseif ($get_escola && $get_curso) {
-        $this->campoLista('ref_cod_instituicao', 'Institui&ccedil;&atilde;o', $opcoes, $this->ref_cod_instituicao, 'getDuploEscolaCurso();', null, null, null, $instituicao_desabilitado, $instituicao_obrigatorio);
+        $this->campoLista('ref_cod_instituicao', 'Instituição', $opcoes, $this->ref_cod_instituicao, 'getDuploEscolaCurso();', null, null, null, $instituicao_desabilitado, $instituicao_obrigatorio);
     } elseif ($get_escola) {
-        $this->campoLista('ref_cod_instituicao', 'Institui&ccedil;&atilde;o', $opcoes, $this->ref_cod_instituicao, 'getEscola();', null, null, null, $instituicao_desabilitado, $instituicao_obrigatorio);
+        $this->campoLista('ref_cod_instituicao', 'Instituição', $opcoes, $this->ref_cod_instituicao, 'getEscola();', null, null, null, $instituicao_desabilitado, $instituicao_obrigatorio);
     } elseif ($get_curso) {
-        $this->campoLista('ref_cod_instituicao', 'Institui&ccedil;&atilde;o', $opcoes, $this->ref_cod_instituicao, 'getCurso();', null, null, null, $instituicao_desabilitado, $instituicao_obrigatorio);
+        $this->campoLista('ref_cod_instituicao', 'Instituição', $opcoes, $this->ref_cod_instituicao, 'getCurso();', null, null, null, $instituicao_desabilitado, $instituicao_obrigatorio);
     } elseif ($get_biblioteca) {
-        $this->campoLista('ref_cod_instituicao', 'Institui&ccedil;&atilde;o', $opcoes, $this->ref_cod_instituicao, 'getBiblioteca(1);', null, null, null, $instituicao_desabilitado, $instituicao_obrigatorio);
+        $this->campoLista('ref_cod_instituicao', 'Instituição', $opcoes, $this->ref_cod_instituicao, 'getBiblioteca(1);', null, null, null, $instituicao_desabilitado, $instituicao_obrigatorio);
     } elseif ($get_cliente_tipo) {
         $this->campoLista('ref_cod_cliente_tipo', 'Tipo de Cliente', $opcoes, $this->ref_cod_cliente_tipo, 'getCliente();', null, null, null, $cliente_tipo_desabilitado, $cliente_tipo_obrigatorio);
     } else {
-        $this->campoLista('ref_cod_instituicao', 'Institui&ccedil;&atilde;o', $opcoes, $this->ref_cod_instituicao, '', null, null, null, $instituicao_desabilitado, $instituicao_obrigatorio);
+        $this->campoLista('ref_cod_instituicao', 'Instituição', $opcoes, $this->ref_cod_instituicao, '', null, null, null, $instituicao_desabilitado, $instituicao_obrigatorio);
     }
 } //se nao eh administrador
 elseif ($nivel_usuario != 1) {
@@ -134,11 +132,6 @@ if ($get_curso) {
         }
     }
     $this->campoLista('ref_cod_curso', 'Curso', $opcoes_curso, $this->ref_cod_curso, null, null, null, null, $curso_desabilitado, $curso_obrigatorio);
-
-    if ($get_semestre) {
-        $this->campoRotulo('semestres', 'Semestre', '<div id=\'div_semestre\'>Selecione um Curso</div>');
-        $this->campoOculto('is_padrao', 1);
-    }
 }
 
 if ($get_escola_curso_serie) {
@@ -154,7 +147,7 @@ if ($get_escola_curso_serie) {
             }
         }
     }
-    $this->campoLista('ref_ref_cod_serie', 'S&eacute;rie', $opcoes_series_curso_escola, $this->ref_ref_cod_serie, null, null, null, null, $escola_curso_serie_desabilitado, $escola_curso_serie_obrigatorio);
+    $this->campoLista('ref_ref_cod_serie', 'Série', $opcoes_series_curso_escola, $this->ref_ref_cod_serie, null, null, null, null, $escola_curso_serie_desabilitado, $escola_curso_serie_obrigatorio);
 }
 
 if ($get_serie) {
@@ -177,7 +170,7 @@ if ($get_biblioteca) {
     if ($ref_cod_biblioteca_ == 0 && $nivel_usuario != 1 && $nivel_usuario != 2) {
         $this->campoOculto('ref_cod_biblioteca', $this->ref_cod_biblioteca);
     } else {
-        $qtd_bibliotecas = count($ref_cod_biblioteca_);
+        $qtd_bibliotecas = is_array($ref_cod_biblioteca_) ? count($ref_cod_biblioteca_) : null;
         if ($qtd_bibliotecas == 1 && ($nivel_usuario == 4 || $nivel_usuario == 8)) {
             $det_unica_biblioteca = array_shift($ref_cod_biblioteca_);
             $this->ref_cod_biblioteca = $det_unica_biblioteca['ref_cod_biblioteca'];
@@ -285,14 +278,14 @@ if (isset($get_cabecalho)) {
         ${$get_cabecalho}[] = 'Escola';
     }
     if ($nivel_usuario == 1) {
-        ${$get_cabecalho}[] = 'Institui&ccedil;&atilde;o';
+        ${$get_cabecalho}[] = 'Instituição';
     }
 }
 ?>
 <script type='text/javascript'>
 <?php
 if ($nivel_usuario == 1 || $nivel_usuario == 2 || $cad_usuario) {
-?>
+    ?>
 var before_getEscola;
 var after_getEscola;
 
@@ -305,16 +298,16 @@ function getEscola() {
 }
 <?php
 if ($get_escola && $get_biblioteca) {
-?>
+        ?>
 function getDuploEscolaBiblioteca() {
     getEscola();
     getBiblioteca(1);
 }
 <?php
-}
+    }
 }
 if ($get_curso && $sem_padrao && !$get_matricula) {
-?>
+    ?>
 function getCurso() {
     var campoCurso = document.getElementById('ref_cod_curso');
     var campoInstituicao = document.getElementById('ref_cod_instituicao').value;
@@ -349,7 +342,7 @@ function atualizaLstCurso(xml) {
 }
 <?php
 } elseif ($get_curso && !$get_matricula) {
-?>
+        ?>
 function getCurso() {
     var campoCurso = document.getElementById('ref_cod_curso');
     var campoInstituicao = document.getElementById('ref_cod_instituicao').value;
@@ -383,9 +376,9 @@ function atualizaLstCurso(xml) {
     }
 }
 <?php
-}
+    }
 if ($get_escola && $get_curso && $get_matricula) {
-?>
+    ?>
 function getMatricula() {
     getEscola();
     getCursoMatricula();
@@ -393,7 +386,7 @@ function getMatricula() {
 <?php
 }
 if ($get_escola && $get_curso && !$get_matricula) {
-?>
+    ?>
 function getDuploEscolaCurso() {
     getEscola();
     getCurso();
@@ -402,7 +395,7 @@ function getDuploEscolaCurso() {
 }
 //if ( $get_escola_curso )
 if ($get_curso) {
-?>
+    ?>
 function getEscolaCurso() {
     var campoCurso = document.getElementById('ref_cod_curso');
     if (document.getElementById('ref_cod_escola')) {
@@ -446,7 +439,7 @@ function atualizaLstEscolaCurso(xml) {
 <?php
 }
 if ($get_escola_curso_serie && $get_matricula && $_GET['ref_cod_aluno']) {
-// tah matriculando o aluno, seleciona as series que ele pode se matricular?
+    // tah matriculando o aluno, seleciona as series que ele pode se matricular?
 ?>
 function getEscolaCursoSerie() {
     var campoInstituicao = document.getElementById('ref_cod_instituicao').value;
@@ -454,7 +447,7 @@ function getEscolaCursoSerie() {
     var campoCursoValue = document.getElementById('ref_cod_curso').value;
     var campoCurso = document.getElementById('ref_cod_curso');
     var campoSerie = document.getElementById('ref_ref_cod_serie');
-    var cod_aluno = <?=$_GET['ref_cod_aluno']?>;
+    var cod_aluno = <?= intval($_GET['ref_cod_aluno']) ?>;
 
     campoSerie.length = 1;
 
@@ -488,7 +481,7 @@ function atualizaLstSerieMatricula(xml) {
 <?php
 }
 if ($get_escola_curso_serie && !$get_matricula) {
-?>
+    ?>
 function getEscolaCursoSerie() {
     var campoCurso = document.getElementById('ref_cod_curso').value;
     if (document.getElementById('ref_cod_escola')) {
@@ -528,7 +521,7 @@ function atualizaLstEscolaCursoSerie(xml) {
 <?php
 }
 if ($get_serie && $get_escola_serie) {
-// lista todas as series que nao estao associadas a essa escola
+    // lista todas as series que nao estao associadas a essa escola
 ?>
 function getSerie() {
     var campoCurso = document.getElementById('ref_cod_curso').value;
@@ -572,7 +565,7 @@ function atualizaLstSerie(xml) {
 <?php
 }
 if ($get_serie && !$get_escola_serie || $exibe_get_serie) {
-?>
+    ?>
 function getSerie() {
     var campoCurso = document.getElementById('ref_cod_curso').value;
     var campoSerie = document.getElementById('ref_cod_serie');
@@ -612,7 +605,7 @@ function atualizaLstSerie(xml) {
 <?php
 }
 if ($get_biblioteca) {
-?>
+    ?>
 function getBiblioteca(flag) {
     var campoBiblioteca = document.getElementById('ref_cod_biblioteca');
     campoBiblioteca.length = 1;
@@ -646,7 +639,7 @@ function atualizaLstBiblioteca(xml) {
 <?php
 }
 if ($get_cliente_tipo) {
-?>
+    ?>
 function getClienteTipo() {
     var campoBiblioteca = document.getElementById('ref_cod_biblioteca').value;
     var campoClienteTipo = document.getElementById('ref_cod_cliente_tipo');
@@ -684,7 +677,7 @@ function atualizaLstClienteTipo(xml) {
 <?php
 }
 if ($get_funcao) {
-?>
+    ?>
 function getFuncao() {
     var campoInstituicao = document.getElementById('ref_cod_instituicao').value;
     var campoFuncao = document.getElementById('ref_cod_funcao');
@@ -719,7 +712,7 @@ function atualizaLstFuncao(xml) {
 <?php
 }
 if ($get_turma) {
-?>
+    ?>
 function getTurma() {
     var campoEscola = document.getElementById('ref_cod_escola').value;
     var campoSerie = document.getElementById('ref_ref_cod_serie').value;
@@ -805,38 +798,4 @@ function limpaCampos(nivel) {
         }
     }
 }
-
-<?php
-if ($get_semestre) {
-?>
-
-function verifica_curso() {
-    var ref_cod_curso = document.getElementById('ref_cod_curso').value;
-    if (ref_cod_curso != '') {
-        var pars = 'ref_cod_curso=' + ref_cod_curso;
-        new Ajax.Request('educar_matricula_cad_curso_segue_padrao.php', {
-                method: 'post',
-                parameters: pars,
-                onComplete: function (resp) {
-                    if (resp.responseText == 0) {
-                        var radios = '<input type=\'radio\' id=\'sem1\' name=\'semestre\' value=\'1\'>1º Semestre<br>' +
-                            '<input type=\'radio\' id=\'sem2\' name=\'semestre\' value=\'2\'>2º Semestre<br>';
-                        $('div_semestre').innerHTML = radios;
-                        $('is_padrao').value = 0;
-                    } else {
-                        $('div_semestre').innerHTML = 'Selecione um Curso';
-                        $('is_padrao').value = 1;
-                    }
-                },
-            },
-        );
-    } else {
-        $('div_semestre').innerHTML = 'Selecione um Curso';
-        $('is_padrao').value = 1;
-    }
-}
-
-<?php
-} ?>
-
 </script>

@@ -1,9 +1,5 @@
 <?php
 
-require_once 'lib/Portabilis/View/Helper/Input/SimpleSearch.php';
-require_once 'lib/Portabilis/Utils/Database.php';
-require_once 'lib/Portabilis/String/Utils.php';
-
 class Portabilis_View_Helper_Input_Resource_SimpleSearchCursoSuperior extends Portabilis_View_Helper_Input_SimpleSearch
 {
     protected function resourceValue($id)
@@ -25,9 +21,8 @@ class Portabilis_View_Helper_Input_Resource_SimpleSearchCursoSuperior extends Po
 
             $options = ['params' => $id, 'return_only' => 'first-row'];
             $curso_superior = Portabilis_Utils_Database::fetchPreparedQuery($sql, $options);
-            $nome = $curso_superior['nome'];
 
-            return Portabilis_String_Utils::toLatin1($nome, ['transform' => true, 'escape' => false]);
+            return $curso_superior['nome'];
         }
     }
 

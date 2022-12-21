@@ -1,23 +1,6 @@
 <?php
 
-require_once('include/clsBase.inc.php');
-require_once('include/clsListagem.inc.php');
-require_once('include/clsBanco.inc.php');
-require_once('include/modules/clsModulesComponenteCurricular.inc.php');
-require_once('modules/ComponenteCurricular/Model/TipoBase.php');
-require_once('modules/AreaConhecimento/Model/AreaDataMapper.php');
-
-class clsIndexBase extends clsBase
-{
-    public function Formular()
-    {
-        $this->SetTitulo("{$this->_instituicao} i-Educar - Componentes curriculares");
-        $this->processoAp = '946';
-    }
-}
-
-class indice extends clsListagem
-{
+return new class extends clsListagem {
     /**
      * Referencia pega da session para o idpes do usuario atual
      *
@@ -64,13 +47,13 @@ class indice extends clsListagem
             'Nome',
             'Abreviatura',
             'Base',
-            '&Aacute;rea de conhecimento'
+            'área de conhecimento'
         ];
 
         $obj_permissoes = new clsPermissoes();
         $nivel_usuario = $obj_permissoes->nivel_acesso($this->pessoa_logada);
         if ($nivel_usuario == 1) {
-            $lista_busca[] = 'Institui&ccedil;&atilde;o';
+            $lista_busca[] = 'Instituição';
         }
 
         $this->addCabecalhos($lista_busca);
@@ -168,12 +151,10 @@ class indice extends clsListagem
             url('intranet/educar_index.php') => 'Escola',
         ]);
     }
-}
-// cria uma extensao da classe base
-$pagina = new clsIndexBase();
-// cria o conteudo
-$miolo = new indice();
-// adiciona o conteudo na clsBase
-$pagina->addForm($miolo);
-// gera o html
-$pagina->MakeAll();
+
+    public function Formular()
+    {
+        $this->title = 'Componentes curriculares';
+        $this->processoAp = '946';
+    }
+};

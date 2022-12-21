@@ -1,21 +1,6 @@
 <?php
 
-require_once('include/clsBase.inc.php');
-require_once('include/clsListagem.inc.php');
-require_once('include/clsBanco.inc.php');
-require_once('include/pmieducar/geral.inc.php');
-
-class clsIndexBase extends clsBase
-{
-    public function Formular()
-    {
-        $this->SetTitulo("{$this->_instituicao} i-Educar - Tipo Usuario");
-        $this->processoAp = '554';
-    }
-}
-
-class indice extends clsListagem
-{
+return new class extends clsListagem {
     /**
      * Referencia pega da session para o idpes do usuario atual
      *
@@ -63,10 +48,10 @@ class indice extends clsListagem
         }
 
         $this->addCabecalhos([
-            'C&oacute;digo Tipo Usu&aacute;rio',
-            'Tipo Usu&aacute;rio',
-            'Descri&ccedil;&atilde;o',
-            'N&iacute;vel',
+            'Código Tipo Usuário',
+            'Tipo Usuário',
+            'Descrição',
+            'Nível',
         ]);
 
         //niveis
@@ -78,8 +63,8 @@ class indice extends clsListagem
 
         // outros Filtros
         $this->campoTexto('nm_tipo', 'Nome Tipo', $this->nm_tipo, 30, 255, false);
-        $this->campoTexto('descricao', 'Descri&ccedil;&atilde;o', $this->descricao, 30, 255, false);
-        $this->campoLista('nivel', 'N&iacute;vel', $array_nivel, $this->nivel, '', false, '', '', false, false);
+        $this->campoTexto('descricao', 'Descrição', $this->descricao, 30, 255, false);
+        $this->campoLista('nivel', 'Nível', $array_nivel, $this->nivel, '', false, '', '', false, false);
 
         $this->nivel = $this->nivel == -1 ? '' : $this->nivel;
 
@@ -137,9 +122,10 @@ class indice extends clsListagem
             url('intranet/educar_configuracoes_index.php') => 'Configurações',
         ]);
     }
-}
 
-$pagina = new clsIndexBase();
-$miolo = new indice();
-$pagina->addForm($miolo);
-$pagina->MakeAll();
+    public function Formular()
+    {
+        $this->title = 'Tipo Usuario';
+        $this->processoAp = '554';
+    }
+};

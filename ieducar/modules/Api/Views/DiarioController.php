@@ -1,25 +1,12 @@
 <?php
 
+use App\Services\RemoveHtmlTagsStringService;
 use iEducar\Modules\EvaluationRules\Exceptions\EvaluationRuleNotAllowGeneralAbsence;
 use iEducar\Modules\Stages\Exceptions\MissingStagesException;
 use iEducar\Support\Exceptions\Error;
 
-require_once 'Portabilis/Controller/ApiCoreController.php';
-require_once 'Avaliacao/Service/Boletim.php';
-require_once 'Avaliacao/Model/NotaComponenteDataMapper.php';
-require_once 'Avaliacao/Model/FaltaComponenteDataMapper.php';
-require_once 'Avaliacao/Model/FaltaGeralDataMapper.php';
-require_once 'Avaliacao/Model/ParecerDescritivoComponenteDataMapper.php';
-require_once 'Avaliacao/Model/ParecerDescritivoGeralDataMapper.php';
-require_once 'RegraAvaliacao/Model/TipoPresenca.php';
-require_once 'RegraAvaliacao/Model/TipoParecerDescritivo.php';
-require_once 'include/modules/clsModulesNotaExame.inc.php';
-require_once 'App/Model/MatriculaSituacao.php';
-require_once 'Portabilis/String/Utils.php';
-
 class DiarioController extends ApiCoreController
 {
-
     protected $_processoAp = 642;
 
     protected function getRegra($matriculaId)
@@ -32,7 +19,7 @@ class DiarioController extends ApiCoreController
         return App_Model_IedFinder::getComponentesPorMatricula($matriculaId);
     }
 
-    protected function getComponentesPorTurma($turmaId)
+    protected function getComponentesPorTurma($turmaId,$matriculaId = null)
     {
         $objTurma = new clsPmieducarTurma($turmaId);
         $detTurma = $objTurma->detalhe();
@@ -40,7 +27,16 @@ class DiarioController extends ApiCoreController
         $serieId = $detTurma['ref_ref_cod_serie'];
         $ano = $detTurma['ano'];
 
+        //obtem a série da matrícula
+        if ($matriculaId && $detTurma['multiseriada'] == 1) {
+            $serieId = $this->getSeriePorMatricula($matriculaId) ?: $serieId;
+        }
+
         return App_Model_IedFinder::getComponentesTurma($serieId, $escolaId, $turmaId, null, null, null, null, null, $ano);
+    }
+
+    private function getSeriePorMatricula($matriculaId) {
+        return \App\Models\LegacyRegistration::where('cod_matricula',$matriculaId)->value('ref_ref_cod_serie');
     }
 
     protected function validateComponenteCurricular($matriculaId, $componenteCurricularId)
@@ -50,16 +46,15 @@ class DiarioController extends ApiCoreController
         $valid = in_array($componenteCurricularId, $componentes);
 
         if (!$valid) {
-            throw new CoreExt_Exception(Portabilis_String_Utils::toLatin1("Componente curricular de código $componenteCurricularId não existe para essa turma/matrícula."));
+            throw new CoreExt_Exception("Componente curricular de código {$componenteCurricularId} não existe para essa turma/matrícula.");
         }
 
         return $valid;
     }
 
-    protected function validateComponenteTurma($turmaId, $componenteCurricularId)
+    protected function validateComponenteTurma($turmaId, $componenteCurricularId,$matriculaId = null)
     {
-        $componentesTurma = $this->getComponentesPorTurma($turmaId);
-
+        $componentesTurma = $this->getComponentesPorTurma($turmaId,$matriculaId);
         if ($componentesTurma instanceof CoreExt_Entity) {
             $componentesTurma = CoreExt_Entity::entityFilterAttr($componentesTurma, 'id', 'id');
         } else {
@@ -89,7 +84,7 @@ class DiarioController extends ApiCoreController
     {
         try {
             $this->serviceBoletim($turmaId, $alunoId)->save();
-        } catch (CoreExt_Service_Exception $e) {
+        } catch (CoreExt_Service_Exception) {
             // excecoes ignoradas :( pois servico lanca excecoes de alertas, que não são exatamente erros.
             // error_log('CoreExt_Service_Exception ignorada: ' . $e->getMessage());
         }
@@ -100,7 +95,7 @@ class DiarioController extends ApiCoreController
         try {
             $this->serviceBoletim($turmaId, $alunoId)->saveFaltas();
             $this->serviceBoletim($turmaId, $alunoId)->promover();
-        } catch (CoreExt_Service_Exception $e) {
+        } catch (CoreExt_Service_Exception) {
             //...
         }
     }
@@ -146,13 +141,13 @@ class DiarioController extends ApiCoreController
 
             // set service
             if (!isset($this->_boletimServiceInstances[$matriculaId])) {
-                    $params = ['matricula' => $matriculaId];
-                    $this->_boletimServiceInstances[$matriculaId] = new Avaliacao_Service_Boletim($params);
+                $params = ['matricula' => $matriculaId];
+                $this->_boletimServiceInstances[$matriculaId] = new Avaliacao_Service_Boletim($params);
             }
 
             // validates service
             if (is_null($this->_boletimServiceInstances[$matriculaId])) {
-                throw new CoreExt_Exception(Portabilis_String_Utils::toLatin1("Não foi possivel instanciar o serviço boletim para a matrícula $matriculaId."));
+                throw new CoreExt_Exception("Não foi possivel instanciar o serviço boletim para a matrícula {$matriculaId}.");
             }
 
             return $this->_boletimServiceInstances[$matriculaId];
@@ -220,7 +215,7 @@ class DiarioController extends ApiCoreController
                 }
 
                 foreach ($notaTurmaAluno as $componenteCurricularId => $notaTurmaAlunoDisciplina) {
-                    if (!$this->validateComponenteTurma($turmaId, $componenteCurricularId)) {
+                    if (!$this->validateComponenteTurma($turmaId, $componenteCurricularId,$matriculaId)) {
                         continue;
                     }
 
@@ -286,7 +281,8 @@ class DiarioController extends ApiCoreController
                     $nota = new Avaliacao_Model_NotaComponente($array_nota);
 
                     $serviceBoletim->verificaNotasLancadasNasEtapasAnteriores(
-                        $etapa, $componenteCurricularId
+                        $etapa,
+                        $componenteCurricularId
                     );
 
                     $serviceBoletim->addNota($nota);
@@ -299,6 +295,7 @@ class DiarioController extends ApiCoreController
 
             $this->messenger->append('Notas postadas com sucesso!', 'success');
         }
+
     }
 
     protected function postRecuperacoes()
@@ -316,7 +313,7 @@ class DiarioController extends ApiCoreController
                     }
 
                     foreach ($notaTurmaAluno as $componenteCurricularId => $notaTurmaAlunoDisciplina) {
-                        if ($this->validateComponenteTurma($turmaId, $componenteCurricularId)) {
+                        if ($this->validateComponenteTurma($turmaId, $componenteCurricularId,$matriculaId)) {
                             $notaOriginal = $notaTurmaAlunoDisciplina['nota'];
 
                             if (is_null($notaOriginal)) {
@@ -342,12 +339,14 @@ class DiarioController extends ApiCoreController
                             $notaMaximaPermitida = $regra->getNotaMaximaRecuperacao($etapa);
 
                             if (empty($notaMaximaPermitida)) {
-                                $this->messenger->append("A nota máxima para recuperação não foi definida", 'error');
+                                $this->messenger->append('A nota máxima para recuperação não foi definida', 'error');
+
                                 return false;
                             }
 
                             if ($notaRecuperacao > $notaMaximaPermitida) {
                                 $this->messenger->append("A nota {$valorNota} está acima da configurada para nota máxima para exame que é {$notaMaximaPermitida}.", 'error');
+
                                 return false;
                             }
 
@@ -378,19 +377,12 @@ class DiarioController extends ApiCoreController
     private function defineCampoTipoRecuperacao($matriculaId)
     {
         $regra = $this->getRegra($matriculaId);
-        $campoRecuperacao = '';
 
-        switch ($regra->get('tipoRecuperacaoParalela')) {
-            case RegraAvaliacao_Model_TipoRecuperacaoParalela::USAR_POR_ETAPA:
-                $campoRecuperacao = 'notaRecuperacaoParalela';
-                break;
-
-            case RegraAvaliacao_Model_TipoRecuperacaoParalela::USAR_POR_ETAPAS_ESPECIFICAS:
-                $campoRecuperacao = 'notaRecuperacaoEspecifica';
-                break;
-        }
-
-        return $campoRecuperacao;
+        return match ((int)$regra->get('tipoRecuperacaoParalela')) {
+            RegraAvaliacao_Model_TipoRecuperacaoParalela::USAR_POR_ETAPA => 'notaRecuperacaoParalela',
+            RegraAvaliacao_Model_TipoRecuperacaoParalela::USAR_POR_ETAPAS_ESPECIFICAS => 'notaRecuperacaoEspecifica',
+            default => '',
+        };
     }
 
     protected function postFaltasPorComponente()
@@ -420,7 +412,7 @@ class DiarioController extends ApiCoreController
                     foreach ($faltaTurmaAluno as $componenteCurricularId => $faltaTurmaAlunoDisciplina) {
                         if ($matriculaId) {
                             if ($this->validateMatricula($matriculaId)) {
-                                if ($this->validateComponenteTurma($turmaId, $componenteCurricularId)) {
+                                if ($this->validateComponenteTurma($turmaId, $componenteCurricularId,$matriculaId)) {
                                     $valor = $faltaTurmaAlunoDisciplina['valor'];
 
                                     $falta = new Avaliacao_Model_FaltaComponente([
@@ -491,16 +483,15 @@ class DiarioController extends ApiCoreController
 
                     if (!empty($matriculaId)) {
                         if ($this->getRegra($matriculaId)->get('parecerDescritivo') != RegraAvaliacao_Model_TipoParecerDescritivo::ETAPA_COMPONENTE) {
-                            throw new CoreExt_Exception(Portabilis_String_Utils::toLatin1("A regra da turma $turmaId não permite lançamento de pareceres por etapa e componente."));
+                            throw new CoreExt_Exception("A regra da turma {$turmaId} não permite lançamento de pareceres por etapa e componente.");
                         }
 
                         foreach ($parecerTurmaAluno as $componenteCurricularId => $parecerTurmaAlunoComponente) {
-                            if ($this->validateComponenteTurma($turmaId, $componenteCurricularId)) {
-                                $parecer = $parecerTurmaAlunoComponente['valor'];
+                            if ($this->validateComponenteTurma($turmaId, $componenteCurricularId,$matriculaId)) {
 
                                 $parecerDescritivo = new Avaliacao_Model_ParecerDescritivoComponente([
                                     'componenteCurricular' => $componenteCurricularId,
-                                    'parecer' => Portabilis_String_Utils::toLatin1($parecer),
+                                    'parecer' => $this->removeHtmlTags($parecerTurmaAlunoComponente['valor']),
                                     'etapa' => $etapa,
                                 ]);
 
@@ -527,16 +518,15 @@ class DiarioController extends ApiCoreController
 
                     if (!empty($matriculaId)) {
                         if ($this->getRegra($matriculaId)->get('parecerDescritivo') != RegraAvaliacao_Model_TipoParecerDescritivo::ANUAL_COMPONENTE) {
-                            throw new CoreExt_Exception(Portabilis_String_Utils::toLatin1("A regra da turma $turmaId não permite lançamento de pareceres anual por componente."));
+                            throw new CoreExt_Exception("A regra da turma {$turmaId} não permite lançamento de pareceres anual por componente.");
                         }
 
                         foreach ($parecerTurmaAluno as $componenteCurricularId => $parecerTurmaAlunoComponente) {
                             if ($this->validateComponenteCurricular($matriculaId, $componenteCurricularId)) {
-                                $parecer = $parecerTurmaAlunoComponente['valor'];
 
                                 $parecerDescritivo = new Avaliacao_Model_ParecerDescritivoComponente([
                                     'componenteCurricular' => $componenteCurricularId,
-                                    'parecer' => Portabilis_String_Utils::toLatin1($parecer),
+                                    'parecer' => $this->removeHtmlTags($parecerTurmaAlunoComponente['valor']),
                                 ]);
 
                                 $this->serviceBoletim($turmaId, $alunoId)->addParecer($parecerDescritivo);
@@ -563,13 +553,11 @@ class DiarioController extends ApiCoreController
 
                     if (!empty($matriculaId)) {
                         if ($this->getRegra($matriculaId)->get('parecerDescritivo') != RegraAvaliacao_Model_TipoParecerDescritivo::ETAPA_GERAL) {
-                            throw new CoreExt_Exception(Portabilis_String_Utils::toLatin1("A regra da turma $turmaId não permite lançamento de pareceres por etapa geral."));
+                            throw new CoreExt_Exception("A regra da turma {$turmaId} não permite lançamento de pareceres por etapa geral.");
                         }
 
-                        $parecer = $parecerTurmaAluno['valor'];
-
                         $parecerDescritivo = new Avaliacao_Model_ParecerDescritivoGeral([
-                            'parecer' => Portabilis_String_Utils::toLatin1($parecer),
+                            'parecer' => $this->removeHtmlTags($parecerTurmaAluno['valor']),
                             'etapa' => $etapa,
                         ]);
 
@@ -590,16 +578,16 @@ class DiarioController extends ApiCoreController
 
             foreach ($pareceres as $turmaId => $parecerTurma) {
                 foreach ($parecerTurma as $alunoId => $parecerTurmaAluno) {
-                    $parecer = $parecerTurmaAluno['valor'];
+                    $parecer = $this->removeHtmlTags($parecerTurmaAluno['valor']);
                     $matriculaId = $this->findMatriculaByTurmaAndAluno($turmaId, $alunoId);
 
                     if (!empty($matriculaId)) {
                         if ($this->getRegra($matriculaId)->get('parecerDescritivo') != RegraAvaliacao_Model_TipoParecerDescritivo::ANUAL_GERAL) {
-                            throw new CoreExt_Exception(Portabilis_String_Utils::toLatin1("A regra da turma $turmaId não permite lançamento de pareceres anual geral."));
+                            throw new CoreExt_Exception("A regra da turma {$turmaId} não permite lançamento de pareceres anual geral.");
                         }
 
                         $parecerDescritivo = new Avaliacao_Model_ParecerDescritivoGeral([
-                            'parecer' => Portabilis_String_Utils::toLatin1($parecer),
+                            'parecer' => $parecer,
                         ]);
 
                         $this->serviceBoletim($turmaId, $alunoId)->addParecer($parecerDescritivo);
@@ -658,6 +646,11 @@ class DiarioController extends ApiCoreController
         }
 
         return $val;
+    }
+
+    public function removeHtmlTags(string $text = ''): string
+    {
+        return (new RemoveHtmlTagsStringService())->execute($text);
     }
 
     public function Gerar()

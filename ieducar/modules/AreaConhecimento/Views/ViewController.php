@@ -1,8 +1,5 @@
 <?php
 
-require_once 'Core/Controller/Page/ViewController.php';
-require_once 'AreaConhecimento/Model/AreaDataMapper.php';
-
 class ViewController extends Core_Controller_Page_ViewController
 {
     protected $_dataMapper = 'AreaConhecimento_Model_AreaDataMapper';
@@ -21,7 +18,7 @@ class ViewController extends Core_Controller_Page_ViewController
     {
         parent::_preRender();
 
-        $this->breadcrumb('Detalhe da &aacute;rea de conhecimento', [
+        $this->breadcrumb('Detalhe da área de conhecimento', [
             url('intranet/educar_index.php') => 'Escola',
         ]);
     }

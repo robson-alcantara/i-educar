@@ -1,13 +1,7 @@
 <?php
 
-require_once 'lib/Portabilis/Controller/ApiCoreController.php';
-require_once 'lib/Portabilis/Array/Utils.php';
-require_once 'lib/Portabilis/String/Utils.php';
-require_once 'lib/Portabilis/Utils/Database.php';
-
 class AreaConhecimentoController extends ApiCoreController
 {
-
     public function canGetAreasDeConhecimento()
     {
         return $this->validatesPresenceOf('instituicao_id');
@@ -40,9 +34,9 @@ class AreaConhecimentoController extends ApiCoreController
                     FROM modules.area_conhecimento
                     WHERE instituicao_id = $1
                     {$where}
-                    
+
                 )
-                UNION ALL 
+                UNION ALL
                 (
                     SELECT
                         id,
@@ -56,7 +50,7 @@ class AreaConhecimentoController extends ApiCoreController
                     WHERE instituicao_id = $1
                     {$where}
                 )
-                ORDER BY updated_at, nome 
+                ORDER BY updated_at, nome
             ";
 
             $areas = $this->fetchPreparedQuery($sql, $params);
@@ -116,6 +110,7 @@ class AreaConhecimentoController extends ApiCoreController
     protected function getAreasDeConhecimentoForTurma()
     {
         $turmaId = $this->getRequest()->turma_id;
+        $serieId = $this->getRequest()->serie_id ?: 0;
 
         $sql = 'SELECT ac.id AS id,
                     ac.nome AS nome,
@@ -124,10 +119,11 @@ class AreaConhecimentoController extends ApiCoreController
                  WHERE ac.id in ( SELECT distinct area_conhecimento_id
                                     FROM relatorio.view_componente_curricular
                                    WHERE cod_turma = $1
+                                   AND CASE WHEN 0 = $2 THEN TRUE ELSE cod_serie = $2 END
                  )
                  ORDER BY (lower(ac.nome)) ASC';
 
-        $paramsSql = [$turmaId];
+        $paramsSql = [$turmaId, $serieId];
 
         return $this->getReturnRequest($this->fetchPreparedQuery($sql, $paramsSql));
     }

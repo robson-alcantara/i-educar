@@ -1,8 +1,6 @@
 <?php
 
-
 namespace App\Models\Educacenso;
-
 
 class Registro10Fields implements RegistroEducacenso
 {
@@ -661,6 +659,11 @@ class Registro10Fields implements RegistroEducacenso
      */
     public $url;
 
+    /**
+     * @var bool
+     */
+    public $semFuncionariosParaFuncoes;
+
     public $registro;
     public $localFuncionamentoPredioEscolar;
     public $localFuncionamentoSalasOutraEscola;
@@ -740,5 +743,4 @@ class Registro10Fields implements RegistroEducacenso
     public $orgaoColegiadoGremio;
     public $orgaoColegiadoOutros;
     public $orgaoColegiadoNaoExiste;
-
 }

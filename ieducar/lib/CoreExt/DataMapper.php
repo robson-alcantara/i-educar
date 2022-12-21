@@ -1,7 +1,5 @@
 <?php
 
-use Illuminate\Support\Facades\Session;
-
 abstract class CoreExt_DataMapper
 {
     /**
@@ -540,7 +538,6 @@ abstract class CoreExt_DataMapper
         $sql = $this->_getFindAllStatment($columns, $where, $orderBy);
 
         if ($this->_getDbAdapter()->execPreparedQuery($sql, $params) != false) {
-
             while ($this->_getDbAdapter()->ProximoRegistro()) {
                 $list[] = $this->_createEntityObject($this->_getDbAdapter()->Tupla());
             }
@@ -553,7 +550,7 @@ abstract class CoreExt_DataMapper
      * Retorna um registro que tenha como identificador (chave única ou composta)
      * o valor dado por $pkey.
      *
-     * @param array|long $pkey
+     * @param $pkey
      *
      * @return CoreExt_Entity
      *
@@ -670,7 +667,7 @@ abstract class CoreExt_DataMapper
         $return = $this->_getDbAdapter()->Consulta($this->_getDeleteStatment($pkToDelete));
 
         if (count($info)) {
-            $pessoa_logada = Session::get('id_pessoa');
+            $pessoa_logada = \Illuminate\Support\Facades\Auth::id();
         }
 
         return $return;
@@ -778,7 +775,7 @@ abstract class CoreExt_DataMapper
                 } else {
                     $instance->$key = $value;
                 }
-            } catch (CoreExt_Exception_InvalidArgumentException $e) {
+            } catch (CoreExt_Exception_InvalidArgumentException) {
                 //
             }
         }

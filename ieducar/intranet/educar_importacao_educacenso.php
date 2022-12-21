@@ -2,25 +2,7 @@
 
 ini_set('max_execution_time', 0);
 
-require_once 'include/clsBase.inc.php';
-require_once 'include/clsCadastro.inc.php';
-require_once 'lib/Portabilis/Utils/Database.php';
-require_once 'lib/Portabilis/Date/Utils.php';
-require_once 'lib/Portabilis/DataMapper/Utils.php';
-require_once 'include/pmieducar/geral.inc.php';
-require_once 'include/modules/clsModulesProfessorTurma.inc.php';
-
-class clsIndexBase extends clsBase
-{
-    public function Formular()
-    {
-        $this->SetTitulo($this->_instituicao . ' i-Educar - Importação educacenso');
-        $this->processoAp = 9998849;
-    }
-}
-
-class indice extends clsCadastro
-{
+return new class extends clsCadastro {
     public $pessoa_logada;
 
     public $arquivo;
@@ -51,7 +33,9 @@ class indice extends clsCadastro
             null => 'Selecione',
             '2019' => '2019',
             '2020' => '2020',
+            '2021' => '2021',
         ];
+
         $options = [
             'label' => 'Ano',
             'resources' => $resources,
@@ -84,15 +68,10 @@ class indice extends clsCadastro
     {
         return;
     }
-}
-// Instancia objeto de página
-$pagina = new clsIndexBase();
 
-// Instancia objeto de conteúdo
-$miolo = new indice();
-
-// Atribui o conteúdo à  página
-$pagina->addForm($miolo);
-
-// Gera o código HTML
-$pagina->MakeAll();
+    public function Formular()
+    {
+        $this->title = 'Importação educacenso';
+        $this->processoAp = 9998849;
+    }
+};

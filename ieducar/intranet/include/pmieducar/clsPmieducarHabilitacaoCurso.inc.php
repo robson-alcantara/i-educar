@@ -2,8 +2,6 @@
 
 use iEducar\Legacy\Model;
 
-require_once 'include/pmieducar/geral.inc.php';
-
 class clsPmieducarHabilitacaoCurso extends Model
 {
     public $ref_cod_habilitacao;
@@ -18,10 +16,10 @@ class clsPmieducarHabilitacaoCurso extends Model
         $this->_campos_lista = $this->_todos_campos = 'ref_cod_habilitacao, ref_cod_curso';
 
         if (is_numeric($ref_cod_curso)) {
-                    $this->ref_cod_curso = $ref_cod_curso;
+            $this->ref_cod_curso = $ref_cod_curso;
         }
         if (is_numeric($ref_cod_habilitacao)) {
-                    $this->ref_cod_habilitacao = $ref_cod_habilitacao;
+            $this->ref_cod_habilitacao = $ref_cod_habilitacao;
         }
     }
 
@@ -67,6 +65,7 @@ class clsPmieducarHabilitacaoCurso extends Model
     {
         if (is_numeric($this->ref_cod_habilitacao) && is_numeric($this->ref_cod_curso)) {
             $db = new clsBanco();
+            $gruda = '';
             $set = '';
 
             if ($set) {

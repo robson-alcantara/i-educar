@@ -2,8 +2,6 @@
 
 use iEducar\Legacy\Model;
 
-require_once 'include/pmieducar/geral.inc.php';
-
 class clsPmieducarAcervoAssunto extends Model
 {
     public $cod_acervo_assunto;
@@ -25,10 +23,10 @@ class clsPmieducarAcervoAssunto extends Model
         $this->_campos_lista = $this->_todos_campos = 'cod_acervo_assunto, ref_usuario_exc, ref_usuario_cad, nm_assunto, descricao, data_cadastro, data_exclusao, ativo, ref_cod_biblioteca';
 
         if (is_numeric($ref_usuario_cad)) {
-                    $this->ref_usuario_cad = $ref_usuario_cad;
+            $this->ref_usuario_cad = $ref_usuario_cad;
         }
         if (is_numeric($ref_usuario_exc)) {
-                    $this->ref_usuario_exc = $ref_usuario_exc;
+            $this->ref_usuario_exc = $ref_usuario_exc;
         }
 
         if (is_numeric($cod_acervo_assunto)) {
@@ -114,6 +112,7 @@ class clsPmieducarAcervoAssunto extends Model
     {
         if (is_numeric($this->cod_acervo_assunto) && is_numeric($this->ref_usuario_exc)) {
             $db = new clsBanco();
+            $gruda = '';
             $set = '';
 
             if (is_numeric($this->ref_usuario_exc)) {
@@ -303,13 +302,14 @@ class clsPmieducarAcervoAssunto extends Model
     /**
      * Cadastra um determinado assunto para uma determinada obra.
      *
-     * @return array
+     * @return bool|array
      */
     public function listaAssuntosPorObra($acervoId)
     {
         $db = new clsBanco();
         $db->Consulta("SELECT aas.*, (SELECT nm_assunto FROM pmieducar.acervo_assunto WHERE cod_acervo_assunto = aas.ref_cod_acervo_assunto) as nome FROM pmieducar.acervo_acervo_assunto aas WHERE ref_cod_acervo = {$acervoId} ");
 
+        $resultado = [];
         while ($db->ProximoRegistro()) {
             $resultado[] = $db->Tupla();
         }

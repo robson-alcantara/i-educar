@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class EmployeeWithdrawal extends Model
 {
@@ -32,6 +31,11 @@ class EmployeeWithdrawal extends Model
         'data_retorno',
         'data_saida',
     ];
+
+    /**
+     * @var bool
+     */
+    public $timestamps = false;
 
     /**
      * @return BelongsTo

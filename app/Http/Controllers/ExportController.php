@@ -3,12 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Jobs\DatabaseToCsvExporter;
+use App\Models\Exporter\Enrollment;
 use App\Models\Exporter\Export;
 use App\Models\Exporter\SocialAssistance;
 use App\Models\Exporter\Stage;
 use App\Models\Exporter\Student;
 use App\Models\Exporter\Teacher;
 use App\Process;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -72,6 +74,11 @@ class ExportController extends Controller
             return redirect()->route('export.form');
         }
 
+        if (empty($request->all()['fields'])) {
+            return redirect('/exportacoes/novo')
+                ->withErrors(['Error' => ['Selecione ao menos uma informação que deseja exportar para continuar.']]);
+        }
+
         $export = Export::create(
             $this->filter($request)
         );
@@ -100,7 +107,11 @@ class ExportController extends Controller
         $model = $data['model'];
 
         if ($model === Student::class) {
-            $data = $this->filterStudents($request, $data, 'exporter_student');
+            $data = $this->filterStudentEnrrolments($request, $data, 'exporter_student_grouped_registration', 'alunos');
+        }
+
+        if ($model === Enrollment::class) {
+            $data = $this->filterStudentEnrrolments($request, $data, 'exporter_student', 'matriculas');
         }
 
         if ($model === Teacher::class) {
@@ -108,7 +119,7 @@ class ExportController extends Controller
         }
 
         if ($model === SocialAssistance::class) {
-            $data = $this->filterStudents($request, $data, 'exporter_social_assistance');
+            $data = $this->filterStudentEnrrolments($request, $data, 'exporter_social_assistance', 'assistencia_social');
         }
 
         if ($model === Stage::class) {
@@ -118,15 +129,9 @@ class ExportController extends Controller
         return $data;
     }
 
-    /**
-     * @param Request $request
-     * @param array   $data
-     *
-     * @return array
-     */
-    protected function filterStudents(Request $request, $data, $table)
+    protected function filterStudentEnrrolments(Request $request, $data, $table, $fileName)
     {
-        $data['filename'] = 'alunos.csv';
+        $data['filename'] = $this->buildFileName($fileName);
 
         if ($status = $request->input('situacao_matricula')) {
             $data['filters'][] = [
@@ -229,5 +234,10 @@ class ExportController extends Controller
         }
 
         return $data;
+    }
+
+    private function buildFileName($fileName): string
+    {
+        return str_replace(' ', '_', $fileName . '_'. Carbon::now()->toDateTimeString() .  '.csv') ;
     }
 }

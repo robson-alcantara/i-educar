@@ -50,6 +50,22 @@ abstract class TestCase extends BaseTestCase
     }
 
     /**
+     * Inicializa as traits helpers.
+     *
+     * @return array
+     */
+    protected function setUpTraits()
+    {
+        $uses = parent::setUpTraits();
+
+        if (isset($uses[LoginFirstUser::class])) {
+            $this->loginWithFirstUser();
+        }
+
+        return $uses;
+    }
+
+    /**
      * Método necessário para executar testes legados.
      *
      * @deprecated
@@ -58,6 +74,6 @@ abstract class TestCase extends BaseTestCase
      */
     public function getHtmlCodeFromFile($fileName)
     {
-        return  file_get_contents(__DIR__ . '/Unit/assets/' . $fileName);
+        return file_get_contents(__DIR__ . '/Unit/assets/' . $fileName);
     }
 }

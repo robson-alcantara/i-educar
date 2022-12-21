@@ -1,12 +1,6 @@
 <?php
 
 use iEducar\Legacy\Model;
-use Illuminate\Support\Facades\Session;
-
-require_once 'include/pmieducar/geral.inc.php';
-require_once 'Avaliacao/Fixups/CleanComponentesCurriculares.php';
-require_once 'include/services/matricula/SequencialEnturmacao.php';
-require_once 'lib/App/Model/Educacenso.php';
 
 class clsPmieducarMatriculaTurma extends Model
 {
@@ -44,28 +38,25 @@ class clsPmieducarMatriculaTurma extends Model
         $reabrirMatricula = false,
         $remanejado = false
     ) {
-        $db = new clsBanco();
         $this->_schema = 'pmieducar.';
         $this->_tabela = "{$this->_schema}matricula_turma";
-
-        $this->pessoa_logada = Session::get('id_pessoa');
 
         $this->_campos_lista = $this->_todos_campos = 'mt.ref_cod_matricula, mt.abandono, mt.reclassificado, mt.remanejado, mt.transferido, mt.falecido, mt.ref_cod_turma, mt.etapa_educacenso, mt.turma_unificada, mt.ref_usuario_exc, mt.ref_usuario_cad, mt.data_cadastro, mt.data_exclusao, mt.ativo, mt.sequencial, mt.data_enturmacao, mt.turno_id, mt.tipo_atendimento, (SELECT pes.nome FROM cadastro.pessoa pes, pmieducar.aluno alu, pmieducar.matricula mat WHERE pes.idpes = alu.ref_idpes AND mat.ref_cod_aluno = alu.cod_aluno AND mat.cod_matricula = mt.ref_cod_matricula ) AS nome, (SELECT (pes.nome) FROM cadastro.pessoa pes, pmieducar.aluno alu, pmieducar.matricula mat WHERE pes.idpes = alu.ref_idpes AND mat.ref_cod_aluno = alu.cod_aluno AND mat.cod_matricula = mt.ref_cod_matricula ) AS nome_ascii';
 
         if (is_numeric($ref_usuario_exc)) {
-                    $this->ref_usuario_exc = $ref_usuario_exc;
+            $this->ref_usuario_exc = $ref_usuario_exc;
         }
 
         if (is_numeric($ref_usuario_cad)) {
-                    $this->ref_usuario_cad = $ref_usuario_cad;
+            $this->ref_usuario_cad = $ref_usuario_cad;
         }
 
         if (is_numeric($ref_cod_turma)) {
-                    $this->ref_cod_turma = $ref_cod_turma;
+            $this->ref_cod_turma = $ref_cod_turma;
         }
 
         if (is_numeric($ref_cod_matricula)) {
-                    $this->ref_cod_matricula = $ref_cod_matricula;
+            $this->ref_cod_matricula = $ref_cod_matricula;
         }
 
         if (!empty($data_cadastro)) {
@@ -85,7 +76,7 @@ class clsPmieducarMatriculaTurma extends Model
         }
 
         if (is_numeric($ref_cod_turma_transf)) {
-                    $this->ref_cod_turma_transf = $ref_cod_turma_transf;
+            $this->ref_cod_turma_transf = $ref_cod_turma_transf;
         }
 
         if (is_numeric($sequencial)) {
@@ -197,6 +188,7 @@ class clsPmieducarMatriculaTurma extends Model
         if (is_numeric($this->ref_cod_matricula) && is_numeric($this->ref_cod_turma) &&
             is_numeric($this->ref_usuario_exc) && is_numeric($this->sequencial)) {
             $db = new clsBanco();
+            $gruda = '';
             $set = '';
 
             $gruda = '';
@@ -277,6 +269,9 @@ class clsPmieducarMatriculaTurma extends Model
             // FIXME
             // Este trecho de código não é utilizado na atualização do registro, ou
             // seja, não serve para nada. Verificar o impacto ao corrigi-lo.
+
+            $campos = '';
+            $valores = '';
 
             if (is_numeric($this->sequencial_fechamento)) {
                 $campos .= "{$gruda}sequencial_fechamento";
@@ -442,7 +437,7 @@ class clsPmieducarMatriculaTurma extends Model
         if (is_numeric($int_ativo)) {
             if ($int_ativo == 1) {
                 $filtros .= "{$whereAnd} mt.ativo = '1'";
-                $whereAnd = " AND ";
+                $whereAnd = ' AND ';
             } elseif ($int_ativo == 2) {
                 $filtros .= "{$whereAnd}
                     (
@@ -462,10 +457,28 @@ class clsPmieducarMatriculaTurma extends Model
                         )
                     )
                 ";
-                $whereAnd = " AND ";
+                $whereAnd = ' AND ';
+            } elseif ($int_ativo == 3) {
+                $filtros .= "{$whereAnd}
+                    (
+                        mt.ativo = 1
+                        OR
+                        (
+                            (
+                                mt.transferido
+                                OR mt.remanejado
+                                OR mt.reclassificado
+                                OR mt.abandono
+                                OR mt.falecido
+                            )
+
+                        )
+                    )
+                ";
+                $whereAnd = ' AND ';
             } else {
                 $filtros .= "{$whereAnd} mt.ativo = '0'";
-                $whereAnd = " AND ";
+                $whereAnd = ' AND ';
             }
         }
 
@@ -852,7 +865,7 @@ class clsPmieducarMatriculaTurma extends Model
         $int_matricula_ativo = null,
         $int_semestre = null
     ) {
-        $sql = "SELECT {$this->_campos_lista}, c.nm_curso, s.nm_serie, t.nm_turma, c.ref_cod_instituicao, m.ref_ref_cod_escola, m.ref_cod_curso, m.ref_ref_cod_serie, m.ref_cod_aluno, p.nome,a.tipo_responsavel,f.data_nasc FROM {$this->_tabela} mt, {$this->_schema}matricula m, {$this->_schema}curso c, {$this->_schema}serie s, {$this->_schema}turma t, {$this->_schema}aluno a, cadastro.pessoa p, cadastro.fisica f {$join}";
+        $sql = "SELECT {$this->_campos_lista}, c.nm_curso, s.nm_serie, t.nm_turma, c.ref_cod_instituicao, m.ref_ref_cod_escola, m.ref_cod_curso, m.ref_ref_cod_serie, m.ref_cod_aluno, p.nome,a.tipo_responsavel,f.data_nasc FROM {$this->_tabela} mt, {$this->_schema}matricula m, {$this->_schema}curso c, {$this->_schema}serie s, {$this->_schema}turma t, {$this->_schema}aluno a, cadastro.pessoa p, cadastro.fisica f ";
         $filtros = '';
 
         $whereAnd = ' WHERE mt.ref_cod_matricula = m.cod_matricula AND m.ref_cod_curso = c.cod_curso AND t.cod_turma = mt.ref_cod_turma AND s.cod_serie = m.ref_ref_cod_serie AND a.cod_aluno = m.ref_cod_aluno AND p.idpes = a.ref_idpes AND p.idpes = f.idpes AND';
@@ -920,11 +933,6 @@ class clsPmieducarMatriculaTurma extends Model
             $whereAnd = ' AND ';
         }
 
-        if (is_numeric($int_ref_cod_instituicao)) {
-            $filtros .= "{$whereAnd} c.ref_cod_instituicao = '{$int_ref_cod_instituicao}'";
-            $whereAnd = ' AND ';
-        }
-
         if (is_numeric($int_ref_cod_aluno)) {
             $filtros .= "{$whereAnd} m.ref_cod_aluno = '{$int_ref_cod_aluno}'";
             $whereAnd = ' AND ';
@@ -983,7 +991,7 @@ class clsPmieducarMatriculaTurma extends Model
 
         $sql .= $filtros . $this->getOrderby() . $this->getLimite();
 
-        $this->_total = $db->CampoUnico("SELECT COUNT(0) FROM {$this->_tabela} mt, {$this->_schema}matricula m, {$this->_schema}curso c, {$this->_schema}serie s, {$this->_schema}turma t, {$this->_schema}aluno a, cadastro.pessoa p, cadastro.fisica f {$join} {$filtros}");
+        $this->_total = $db->CampoUnico("SELECT COUNT(0) FROM {$this->_tabela} mt, {$this->_schema}matricula m, {$this->_schema}curso c, {$this->_schema}serie s, {$this->_schema}turma t, {$this->_schema}aluno a, cadastro.pessoa p, cadastro.fisica f {$filtros}");
         $db->Consulta($sql);
 
         if ($countCampos > 1) {
@@ -1080,42 +1088,35 @@ class clsPmieducarMatriculaTurma extends Model
     public function listaPorSequencial($codTurma)
     {
         $db = new clsBanco();
-        $sql = "SELECT nome,
-                    sequencial_fechamento,
-                    ref_cod_matricula
-                FROM cadastro.pessoa
-              INNER JOIN pmieducar.aluno ON (aluno.ref_idpes = pessoa.idpes)
-              INNER JOIN pmieducar.matricula ON (matricula.ref_cod_aluno = aluno.cod_aluno)
-              INNER JOIN pmieducar.matricula_turma ON (matricula_turma.ref_cod_matricula = matricula.cod_matricula)
-              JOIN pmieducar.escola ON escola.cod_escola = matricula.ref_ref_cod_escola
-              JOIN pmieducar.instituicao ON escola.ref_cod_instituicao = instituicao.cod_instituicao
-              WHERE matricula.ativo = 1
-                AND (CASE WHEN matricula_turma.ativo = 1 THEN TRUE
-                    WHEN matricula_turma.transferido THEN TRUE
-                    WHEN matricula_turma.falecido THEN TRUE
-                    WHEN matricula.dependencia THEN TRUE
-                    WHEN matricula_turma.abandono THEN TRUE
-                    WHEN matricula_turma.reclassificado THEN TRUE
-                    WHEN matricula_turma.remanejado
-                        AND instituicao.data_base_remanejamento IS NOT NULL
-                        AND matricula_turma.data_exclusao::date > instituicao.data_base_remanejamento
-                    THEN TRUE
-                    ELSE FALSE END)
-                AND matricula_turma.ref_cod_turma = {$codTurma}
-                AND CASE WHEN matricula_turma.ativo = 1 THEN
-                    TRUE
-                ELSE
-                    NOT EXISTS (
-                        SELECT 1
-                        FROM pmieducar.matricula_turma mt
-                        JOIN pmieducar.matricula m ON m.cod_matricula = mt.ref_cod_matricula
-                        WHERE m.ref_cod_aluno = aluno.cod_aluno
-                        AND mt.ref_cod_turma = matricula_turma.ref_cod_turma
-                        AND mt.ativo = 1
-                    )
-                END
-                ORDER BY sequencial_fechamento, nome";
+        $sql = "
+        SELECT
+            nome,
+            sequencial_fechamento,
+            ref_cod_matricula,
+            relatorio.view_situacao_relatorios.texto_situacao situacao,
+            matricula_turma.id
+        FROM
+            cadastro.pessoa
+            INNER JOIN pmieducar.aluno ON ( aluno.ref_idpes = pessoa.idpes )
+            INNER JOIN pmieducar.matricula ON ( matricula.ref_cod_aluno = aluno.cod_aluno )
+            INNER JOIN pmieducar.matricula_turma ON ( matricula_turma.ref_cod_matricula = matricula.cod_matricula )
+            INNER JOIN pmieducar.escola ON escola.cod_escola = matricula.ref_ref_cod_escola
+            INNER JOIN pmieducar.instituicao ON escola.ref_cod_instituicao = instituicao.cod_instituicao
+            INNER JOIN relatorio.view_situacao_relatorios ON ( view_situacao_relatorios.cod_matricula = matricula.cod_matricula AND view_situacao_relatorios.cod_turma = matricula_turma.ref_cod_turma AND matricula_turma.sequencial = view_situacao_relatorios.sequencial )
+        WHERE
+            matricula_turma.ref_cod_turma = {$codTurma}
+        GROUP BY
+          ref_cod_matricula,
+            sequencial_fechamento,
+            nome,
+            relatorio.view_situacao_relatorios.texto_situacao,
+            matricula_turma.id
 
+        ORDER BY
+            sequencial_fechamento,
+        nome";
+
+        $resultado = [];
         $db->Consulta($sql);
 
         while ($db->ProximoRegistro()) {

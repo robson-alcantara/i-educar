@@ -1,8 +1,6 @@
 <?php
 
-require_once 'CoreExt/View/Helper/Abstract.php';
-
-class CoreExt_View_Helper_TableHelper extends CoreExt_View_Helper_Abstract
+class CoreExt_View_Helper_TableHelper extends CoreExt_View_Helper_Abstract implements \Stringable
 {
     protected $_header = [];
     protected $_body = [];
@@ -271,7 +269,7 @@ class CoreExt_View_Helper_TableHelper extends CoreExt_View_Helper_Abstract
      *
      * @link
      */
-    public function __toString()
+    public function __toString(): string
     {
         return $this->createTable();
     }

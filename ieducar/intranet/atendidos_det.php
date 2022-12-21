@@ -1,29 +1,10 @@
 <?php
 
-require_once 'include/clsBase.inc.php';
-require_once 'include/clsDetalhe.inc.php';
-require_once 'include/clsBanco.inc.php';
-require_once 'include/pessoa/clsCadastroRaca.inc.php';
-require_once 'include/pessoa/clsCadastroFisicaFoto.inc.php';
-require_once 'include/pessoa/clsCadastroFisicaRaca.inc.php';
-
-require_once 'App/Model/ZonaLocalizacao.php';
-
 use App\Models\LegacyIndividual;
 use App\Services\FileService;
 use App\Services\UrlPresigner;
 
-class clsIndex extends clsBase
-{
-    public function Formular()
-    {
-        $this->SetTitulo($this->_instituicao . ' Pessoa');
-        $this->processoAp = 43;
-    }
-}
-
-class indice extends clsDetalhe
-{
+return new class extends clsDetalhe {
     public function Gerar()
     {
         $this->titulo = 'Detalhe da Pessoa';
@@ -31,7 +12,6 @@ class indice extends clsDetalhe
         $cod_pessoa = (int) $this->getQueryString('cod_pessoa');
 
         $objPessoa = new clsPessoaFisica($cod_pessoa);
-        $db = new clsBanco();
 
         $detalhe = $objPessoa->queryRapida(
             $cod_pessoa,
@@ -73,7 +53,7 @@ class indice extends clsDetalhe
         }
 
         if ($detalhe['nome_social']) {
-            $this->addDetalhe(['Nome social', $detalhe['nome_social']]);
+            $this->addDetalhe(['Nome social e/ou afetivo', $detalhe['nome_social']]);
         }
 
         $this->addDetalhe(['CPF', int2cpf($detalhe['cpf'])]);
@@ -164,7 +144,7 @@ class indice extends clsDetalhe
         $fileService = new FileService(new UrlPresigner);
         $files = $fileService->getFiles(LegacyIndividual::find($cod_pessoa));
 
-        if (count($files) > 0) {
+        if (is_array($files) && count($files) > 0) {
             $this->addHtml(view('uploads.upload-details', ['files' => $files])->render());
         }
 
@@ -181,16 +161,10 @@ class indice extends clsDetalhe
 
         $this->breadcrumb('Pessoa física', ['educar_pessoas_index.php' => 'Pessoas']);
     }
-}
 
-// Instancia objeto de página
-$pagina = new clsIndex();
-
-// Instancia objeto de conteúdo
-$miolo = new indice();
-
-// Atribui o conteúdo à página
-$pagina->addForm($miolo);
-
-// Gera o código HTML
-$pagina->MakeAll();
+    public function Formular()
+    {
+        $this->title = 'Pessoa';
+        $this->processoAp = 43;
+    }
+};

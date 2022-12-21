@@ -1,8 +1,5 @@
 <?php
 
-require_once 'include/clsBanco.inc.php';
-require_once 'include/Geral.inc.php';
-
 class clsFuncionario extends clsPessoaFisica
 {
     public $idpes;
@@ -35,10 +32,9 @@ class clsFuncionario extends clsPessoaFisica
         $this->data_troca_senha = $data_troca_senha;
         $this->data_reativa_conta = $data_reativa_conta;
         $this->tempo_expira_senha = $tempo_expira_senha;
-        $this->data_expiracao = $data_expiracao;
         $this->ref_cod_funcionario_vinculo = $ref_cod_funcionario_vinculo;
         $this->email = $email;
-        $this->_campos_lista = ' 
+        $this->_campos_lista = '
             f.ref_cod_pessoa_fj,
             f.matricula,
             f.matricula_interna,
@@ -138,11 +134,6 @@ class clsFuncionario extends clsPessoaFisica
             $filtro_pessoa = true;
         }
 
-        if (is_string($str_email)) {
-            $filtros .= "{$whereAnd} f.email ILIKE '%{$str_email}%'f";
-            $whereAnd = ' AND ';
-        }
-
         $limite = '';
         if ($int_inicio_limit !== false && $int_qtd_registros !== false) {
             $limite = "LIMIT $int_qtd_registros OFFSET $int_inicio_limit ";
@@ -200,7 +191,7 @@ class clsFuncionario extends clsPessoaFisica
         $filtros = '';
         $filtro_pessoa = false;
 
-        $whereAnd = ' WHERE u.ativo = 1 AND ';
+        $whereAnd = ' WHERE true AND ';
 
         if (is_string($str_matricula) && $str_matricula != '') {
             $filtros .= "{$whereAnd} (f.matricula) LIKE ('%{$str_matricula}%')";
@@ -240,6 +231,7 @@ class clsFuncionario extends clsPessoaFisica
 
         if (is_numeric($int_ativo)) {
             $filtros .= "{$whereAnd} f.ativo = '$int_ativo'";
+            $filtros .= "{$whereAnd} u.ativo = '$int_ativo'";
             $whereAnd = ' AND ';
         }
 

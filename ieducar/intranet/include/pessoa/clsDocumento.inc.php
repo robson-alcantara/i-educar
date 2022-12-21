@@ -1,8 +1,5 @@
 <?php
 
-require_once 'include/clsBanco.inc.php';
-require_once 'include/Geral.inc.php';
-
 class clsDocumento
 {
     public $idpes;
@@ -68,20 +65,17 @@ class clsDocumento
         $this->rg = $int_rg;
         $this->data_exp_rg = $str_data_exp_rg;
         $this->sigla_uf_exp_rg = $str_sigla_uf_exp_rg;
-
         $this->tipo_cert_civil = $int_tipo_cert_civil;
         $this->num_termo = $int_num_termo;
         $this->num_livro = $int_num_livro;
         $this->num_folha = $int_num_folha;
         $this->data_emissao_cert_civil = $str_data_emissao_cert_civil;
         $this->sigla_uf_cert_civil = $str_sigla_uf_cert_civil;
-
         $this->cartorio_cert_civil = $str_cartorio_cert_civil;
         $this->num_cart_trabalho = $int_num_cart_trabalho;
         $this->serie_cart_trabalho = $int_serie_cart_trabalho;
         $this->data_emissao_cart_trabalho = $str_data_emissao_cart_trabalho;
         $this->sigla_uf_cart_trabalho = $str_sigla_uf_cart_trabalho;
-
         $this->num_tit_eleitor = $int_num_tit_eleitor;
         $this->zona_tit_eleitor = $int_zona_tit_eleitor;
         $this->secao_tit_eleitor = $int_secao_tit_eleitor;
@@ -606,6 +600,7 @@ class clsDocumento
         $int_idpes = false
     ) {
         $whereAnd = 'WHERE ';
+        $where = '';
 
         if (is_string($int_idpes)) {
             $where .= "{$whereAnd}idpes IN ({$int_idpes})";
@@ -625,7 +620,7 @@ class clsDocumento
             $whereAnd = ' AND ';
         }
         if (is_string($this->tipo_cert_civil)) {
-            $where .= "{$whereAnd}tipo_cert_civil LIKE '%$str_tipo_cert_civil%'";
+            $where .= "{$whereAnd}tipo_cert_civil LIKE '%$this->tipo_cert_civil%'";
             $whereAnd = ' AND ';
         }
         if (is_numeric($this->num_termo)) {
@@ -637,7 +632,7 @@ class clsDocumento
             $whereAnd = ' AND ';
         }
         if (is_numeric($this->num_folha)) {
-            $where .= "{$whereAnd}num_folha = '$intnum_folha'";
+            $where .= "{$whereAnd}num_folha = '$this->num_folha'";
             $whereAnd = ' AND ';
         }
         if (is_string($this->data_emissao_cert_civil)) {
@@ -703,12 +698,6 @@ class clsDocumento
         while ($db->ProximoRegistro()) {
             $tupla = $db->Tupla();
 
-            $tupla['idpes'] = $tupla['idpes'];
-            $tupla['idorg_exp_rg'] = $tupla['idorg_exp_rg'];
-            $tupla['sigla_uf_cart_trabalho'] = $tupla['sigla_uf_cart_trabalho'];
-            $tupla['sigla_uf_cert_civil'] = $tupla['sigla_uf_cert_civil'];
-            $tupla['sigla_uf_exp_rg'] = $tupla['sigla_uf_exp_rg'];
-
             $tupla['total'] = $total;
             $resultado[] = $tupla;
         }
@@ -753,10 +742,6 @@ class clsDocumento
                 $this->passaporte = $tupla['passaporte'];
 
                 $tupla['idpes'] = $tupla['idpes'] ?? null;
-                $tupla['idorg_exp_rg'] = $tupla['idorg_exp_rg'];
-                $tupla['sigla_uf_cart_trabalho'] = $tupla['sigla_uf_cart_trabalho'];
-                $tupla['sigla_uf_cert_civil'] = $tupla['sigla_uf_cert_civil'];
-                $tupla['sigla_uf_exp_rg'] = $tupla['sigla_uf_exp_rg'];
 
                 return $tupla;
             }

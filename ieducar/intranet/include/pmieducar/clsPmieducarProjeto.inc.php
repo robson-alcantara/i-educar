@@ -2,8 +2,6 @@
 
 use iEducar\Legacy\Model;
 
-require_once 'include/pmieducar/geral.inc.php';
-
 class clsPmieducarProjeto extends Model
 {
     public $cod_projeto;
@@ -73,6 +71,7 @@ class clsPmieducarProjeto extends Model
     {
         if (is_numeric($this->cod_projeto) && is_string($this->nome)) {
             $db = new clsBanco();
+            $gruda = '';
             $set = '';
 
             if (is_string($this->nome)) {
@@ -225,6 +224,7 @@ class clsPmieducarProjeto extends Model
 
     public function listaProjetosPorAluno($alunoId)
     {
+        $resultado = [];
         $db = new clsBanco();
         $db->Consulta("SELECT nome as projeto,
                                    data_inclusao,

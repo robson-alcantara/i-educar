@@ -9,13 +9,14 @@ use App\Exceptions\Enrollment\EnrollDateBeforeAcademicYearException;
 use App\Exceptions\Enrollment\ExistsActiveEnrollmentException;
 use App\Exceptions\Enrollment\ExistsActiveEnrollmentSameTimeException;
 use App\Exceptions\Enrollment\NoVacancyException;
+use App\Exceptions\Enrollment\PreviousCancellationDateException;
 use App\Exceptions\Enrollment\PreviousEnrollCancellationDateException;
 use App\Exceptions\Enrollment\PreviousEnrollDateException;
-use App\Exceptions\Enrollment\PreviousCancellationDateException;
 use App\Exceptions\Enrollment\PreviousEnrollRegistrationDateException;
+use App\Models\LegacyEnrollment;
 use App\Models\LegacyRegistration;
 use App\Models\LegacySchoolClass;
-use App\Models\LegacyEnrollment;
+use App\Rules\CanChangeExitDate;
 use App\Services\SchoolClass\AvailableTimeService;
 use App\User;
 use Carbon\Carbon;
@@ -63,6 +64,7 @@ class EnrollmentService
     private function getAvailableTimeService()
     {
         $availableTimeService = new AvailableTimeService();
+
         return $availableTimeService->onlySchoolClassesInformedOnCensus();
     }
 
@@ -71,9 +73,9 @@ class EnrollmentService
      *
      * @param int $enrollment ID da enturmação
      *
-     * @return LegacyEnrollment $enrollment
-     *
      * @throws ModelNotFoundException
+     *
+     * @return LegacyEnrollment $enrollment
      */
     public function find($enrollment)
     {
@@ -111,7 +113,6 @@ class EnrollmentService
     {
         return LegacyEnrollment::where('ref_cod_matricula', $registration->id)
             ->where('ref_cod_turma', '<>', $schoolClass->id)
-            ->active()
             ->with('schoolClass')
             ->get();
     }
@@ -134,11 +135,11 @@ class EnrollmentService
      * @param LegacyEnrollment $enrollment ID da enturmação
      * @param DateTime         $date       Data do cancelamento
      *
-     * @return bool
-     *
      * @throws PreviousCancellationDateException
      * @throws ModelNotFoundException
      * @throws Throwable
+     *
+     * @return bool
      */
     public function cancelEnrollment(LegacyEnrollment $enrollment, DateTime $date)
     {
@@ -182,17 +183,18 @@ class EnrollmentService
      * @param LegacySchoolClass  $schoolClass
      * @param DateTime           $date
      *
-     * @return LegacyEnrollment
-     *
      * @throws NoVacancyException
      * @throws ExistsActiveEnrollmentException
      * @throws PreviousEnrollDateException
      * @throws Throwable
+     *
+     * @return LegacyEnrollment
      */
     public function enroll(
         LegacyRegistration $registration,
         LegacySchoolClass $schoolClass,
-        DateTime $date
+        DateTime $date,
+        $isRelocatedSameClassGroup = false
     ) {
         if ($schoolClass->denyEnrollmentsWhenNoVacancy() && empty($schoolClass->vacancies)) {
             throw new NoVacancyException($schoolClass);
@@ -206,15 +208,6 @@ class EnrollmentService
 
         if ($date->format('Y-m-d') > $schoolClass->end_academic_year->format('Y-m-d')) {
             throw new EnrollDateAfterAcademicYearException($schoolClass, $date);
-        }
-
-        $existsActiveEnrollment = $registration->enrollments()
-            ->where('ativo', 1)
-            ->where('ref_cod_turma', $schoolClass->id)
-            ->count();
-
-        if ($existsActiveEnrollment) {
-            throw new ExistsActiveEnrollmentException($registration);
         }
 
         if (
@@ -237,6 +230,15 @@ class EnrollmentService
 
         $sequenceInSchoolClass = $this->getSequenceSchoolClass($registration, $schoolClass, $date);
 
+        $existsActiveEnrollment = $registration->enrollments()
+            ->where('ativo', 1)
+            ->where('ref_cod_turma', $schoolClass->id)
+            ->exists();
+
+        if ($existsActiveEnrollment) {
+            throw new ExistsActiveEnrollmentException($registration);
+        }
+
         /** @var LegacyEnrollment $enrollment */
         $enrollment = $registration->enrollments()->create([
             'ref_cod_turma' => $schoolClass->id,
@@ -245,6 +247,7 @@ class EnrollmentService
             'ref_usuario_cad' => $this->user->getKey(),
             'data_cadastro' => Carbon::now(),
             'data_enturmacao' => $date,
+            'remanejado_mesma_turma' => $isRelocatedSameClassGroup
         ]);
 
         return $enrollment;
@@ -254,11 +257,12 @@ class EnrollmentService
      * Atualiza o campo transferido na enturmação para TRUE
      *
      * @param LegacyEnrollment $enrollment
+     *
      * @throws Throwable
      */
     public function markAsTransferred(LegacyEnrollment $enrollment)
     {
-        $enrollment->remanejado = true;
+        $enrollment->transferido = true;
         $enrollment->saveOrFail();
     }
 
@@ -266,6 +270,7 @@ class EnrollmentService
      * Atualiza o campo remanejado na enturmação para TRUE
      *
      * @param LegacyEnrollment $enrollment
+     *
      * @throws Throwable
      */
     public function markAsRelocated(LegacyEnrollment $enrollment)
@@ -274,10 +279,17 @@ class EnrollmentService
         $enrollment->saveOrFail();
     }
 
+    public function markAsRelocatedSameClassGroup(LegacyEnrollment $enrollment)
+    {
+        $enrollment->remanejado_mesma_turma = true;
+        $enrollment->saveOrFail();
+    }
+
     /**
      * Atualiza o campo reclassificado na enturmação para TRUE
      *
      * @param LegacyEnrollment $enrollment
+     *
      * @throws Throwable
      */
     public function markAsReclassified(LegacyEnrollment $enrollment)
@@ -290,6 +302,7 @@ class EnrollmentService
      * Atualiza o campo abandono na enturmação para TRUE
      *
      * @param LegacyEnrollment $enrollment
+     *
      * @throws Throwable
      */
     public function markAsAbandoned(LegacyEnrollment $enrollment)
@@ -302,6 +315,7 @@ class EnrollmentService
      * Atualiza o campo falecido na enturmação para TRUE
      *
      * @param LegacyEnrollment $enrollment
+     *
      * @throws Throwable
      */
     public function markAsDeceased(LegacyEnrollment $enrollment)
@@ -315,6 +329,7 @@ class EnrollmentService
      * ou data base vazia
      *
      * @param LegacyRegistration $registration
+     *
      * @return LegacyEnrollment|void
      */
     public function getPreviousEnrollmentAccordingToRelocationDate(LegacyRegistration $registration)
@@ -357,7 +372,7 @@ class EnrollmentService
      * remanejado devem ser atualizados subtraindo 1
      *
      * @param LegacyEnrollment $enrollment
-     * @param DateTime $date
+     * @param DateTime         $date
      */
     public function reorderSchoolClass(LegacyEnrollment $enrollment)
     {
@@ -372,7 +387,7 @@ class EnrollmentService
             ->each(function (LegacyEnrollment $enrollment) {
                 $enrollment->sequencial_fechamento -= 1;
                 $enrollment->save();
-        });
+            });
 
         $enrollment->sequencial_fechamento = 9999;
         $enrollment->save();
@@ -388,7 +403,7 @@ class EnrollmentService
     {
         $relocationDate = $enrollment->schoolClass->school->institution->relocation_date;
 
-        if(!$relocationDate || $enrollment->data_exclusao < $relocationDate) {
+        if (!$relocationDate || $enrollment->data_exclusao < $relocationDate) {
             $this->reorderSchoolClass($enrollment);
         }
     }
@@ -398,7 +413,8 @@ class EnrollmentService
      * ou se a data informada é antes da database
      *
      * @param LegacyEnrollment $enrollment
-     * @param DateTime $date
+     * @param DateTime         $date
+     *
      * @return bool
      */
     private function withoutRelocationDateOrDateIsAfter($enrollment, $date)
@@ -406,5 +422,31 @@ class EnrollmentService
         $relocationDate = $enrollment->schoolClass->school->institution->relocation_date;
 
         return !$relocationDate || $date >= $relocationDate;
+    }
+
+    /**
+     * @param LegacyEnrollment $enrollment
+     * @param DateTime         $exitDate
+     *
+     * @throws \Illuminate\Validation\ValidationException
+     */
+    public function updateExitDate(LegacyEnrollment $enrollment, DateTime $exitDate)
+    {
+        $studentId = $enrollment->getStudentId();
+        validator(
+            [
+                'data' =>
+                    [
+                        'student_id' => $studentId,
+                        'exit_date' => $exitDate
+                    ]
+            ],
+            [
+                'data' => [new CanChangeExitDate()]
+            ]
+        )->validate();
+
+        $enrollment->data_exclusao = $exitDate->format('Y-m-d');
+        $enrollment->save();
     }
 }

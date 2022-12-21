@@ -1,9 +1,6 @@
 <?php
 
 use iEducar\Legacy\Model;
-use Illuminate\Support\Facades\Session;
-
-require_once 'include/pmieducar/geral.inc.php';
 
 class clsPmieducarExemplar extends Model
 {
@@ -23,36 +20,32 @@ class clsPmieducarExemplar extends Model
     public $tombo;
     public $sequencial;
     public $data_baixa_exemplar;
-    public $pessoa_logada;
     public $codUsuario;
 
     public function __construct($cod_exemplar = null, $ref_cod_fonte = null, $ref_cod_motivo_baixa = null, $ref_cod_acervo = null, $ref_cod_situacao = null, $ref_usuario_exc = null, $ref_usuario_cad = null, $permite_emprestimo = null, $preco = null, $data_cadastro = null, $data_exclusao = null, $ativo = null, $data_aquisicao = null, $tombo = null, $sequencial = null, $data_baixa_exemplar = null)
     {
-        $db = new clsBanco();
         $this->_schema = 'pmieducar.';
         $this->_tabela = "{$this->_schema}exemplar";
-
-        $this->pessoa_logada = Session::get('id_pessoa');
 
         $this->_campos_lista = $this->_todos_campos = 'e.cod_exemplar, e.ref_cod_fonte, e.ref_cod_motivo_baixa, e.ref_cod_acervo, e.ref_cod_situacao, e.ref_usuario_exc, e.ref_usuario_cad, e.permite_emprestimo, e.preco, e.data_cadastro, e.data_exclusao, e.ativo, e.data_aquisicao, e.tombo, e.sequencial, e.data_baixa_exemplar';
 
         if (is_numeric($ref_cod_fonte)) {
-                    $this->ref_cod_fonte = $ref_cod_fonte;
+            $this->ref_cod_fonte = $ref_cod_fonte;
         }
         if (is_numeric($ref_cod_motivo_baixa)) {
-                    $this->ref_cod_motivo_baixa = $ref_cod_motivo_baixa;
+            $this->ref_cod_motivo_baixa = $ref_cod_motivo_baixa;
         }
         if (is_numeric($ref_cod_acervo)) {
-                    $this->ref_cod_acervo = $ref_cod_acervo;
+            $this->ref_cod_acervo = $ref_cod_acervo;
         }
         if (is_numeric($ref_cod_situacao)) {
-                    $this->ref_cod_situacao = $ref_cod_situacao;
+            $this->ref_cod_situacao = $ref_cod_situacao;
         }
         if (is_numeric($ref_usuario_exc)) {
-                    $this->ref_usuario_exc = $ref_usuario_exc;
+            $this->ref_usuario_exc = $ref_usuario_exc;
         }
         if (is_numeric($ref_usuario_cad)) {
-                    $this->ref_usuario_cad = $ref_usuario_cad;
+            $this->ref_usuario_cad = $ref_usuario_cad;
         }
 
         if (is_numeric($cod_exemplar)) {
@@ -189,6 +182,7 @@ class clsPmieducarExemplar extends Model
     {
         if (is_numeric($this->cod_exemplar) && is_numeric($this->ref_usuario_exc)) {
             $db = new clsBanco();
+            $gruda = '';
             $set = '';
 
             if (is_numeric($this->ref_cod_fonte)) {
@@ -469,7 +463,7 @@ class clsPmieducarExemplar extends Model
      *
      * @return array
      */
-    public function lista_com_acervos($int_cod_exemplar = null, $int_ref_cod_fonte = null, $int_ref_cod_motivo_baixa = null, $int_ref_cod_acervo = null, $int_ref_cod_situacao = null, $int_ref_usuario_exc = null, $int_ref_usuario_cad = null, $int_permite_emprestimo = null, $int_preco = null, $date_data_cadastro_ini = null, $date_data_cadastro_fim = null, $date_data_exclusao_ini = null, $date_data_exclusao_fim = null, $int_ativo = null, $date_data_aquisicao_ini = null, $date_data_aquisicao_fim = null, $int_ref_exemplar_tipo = null, $str_titulo_livro = null, $int_ref_cod_biblioteca = null, $int_ref_cod_instituicao = null, $int_ref_cod_escola = null, $int_ref_cod_acervo_colecao = null, $int_ref_cod_acervo_editora = null, $tombo)
+    public function lista_com_acervos($int_cod_exemplar, $int_ref_cod_fonte, $int_ref_cod_motivo_baixa, $int_ref_cod_acervo, $int_ref_cod_situacao, $int_ref_usuario_exc, $int_ref_usuario_cad, $int_permite_emprestimo, $int_preco, $date_data_cadastro_ini, $date_data_cadastro_fim, $date_data_exclusao_ini, $date_data_exclusao_fim, $int_ativo, $date_data_aquisicao_ini, $date_data_aquisicao_fim, $int_ref_exemplar_tipo, $str_titulo_livro, $int_ref_cod_biblioteca, $int_ref_cod_instituicao, $int_ref_cod_escola, $int_ref_cod_acervo_colecao, $int_ref_cod_acervo_editora, $tombo)
     {
         $db = new clsBanco();
 

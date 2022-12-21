@@ -6,8 +6,8 @@ use App\Models\Educacenso\Registro20;
 use App\Models\Educacenso\Registro30;
 use App\Models\Educacenso\Registro40;
 use App\Models\Educacenso\Registro50;
-use App\Models\Individual;
 use App\Models\Educacenso\Registro60;
+use App\Models\Individual;
 use App\Models\LegacyInstitution;
 use App\Models\LegacySchool;
 use App\Models\School;
@@ -16,9 +16,9 @@ use App\Services\SchoolClass\AvailableTimeService;
 use iEducar\Modules\Educacenso\Analysis\Register30CommonDataAnalysis;
 use iEducar\Modules\Educacenso\Analysis\Register30ManagerDataAnalysis;
 use iEducar\Modules\Educacenso\Analysis\Register30StudentDataAnalysis;
-use iEducar\Modules\Educacenso\Analysis\Register30TeacherDataAnalysis;
 use iEducar\Modules\Educacenso\Analysis\Register30TeacherAndManagerDataAnalysis;
 use iEducar\Modules\Educacenso\Analysis\Register30TeacherAndStudentDataAnalysis;
+use iEducar\Modules\Educacenso\Analysis\Register30TeacherDataAnalysis;
 use iEducar\Modules\Educacenso\Data\Registro00 as Registro00Data;
 use iEducar\Modules\Educacenso\Data\Registro10 as Registro10Data;
 use iEducar\Modules\Educacenso\Data\Registro20 as Registro20Data;
@@ -26,33 +26,31 @@ use iEducar\Modules\Educacenso\Data\Registro30 as Registro30Data;
 use iEducar\Modules\Educacenso\Data\Registro40 as Registro40Data;
 use iEducar\Modules\Educacenso\Data\Registro50 as Registro50Data;
 use iEducar\Modules\Educacenso\Data\Registro60 as Registro60Data;
+use iEducar\Modules\Educacenso\ExportRule\PoderPublicoConveniado as ExportRulePoderPublicoConveniado;
+use iEducar\Modules\Educacenso\Model\DependenciaAdministrativaEscola;
+use iEducar\Modules\Educacenso\Model\EstruturaCurricular;
 use iEducar\Modules\Educacenso\Model\LinguaMinistrada;
+use iEducar\Modules\Educacenso\Model\LocalFuncionamento;
 use iEducar\Modules\Educacenso\Model\LocalizacaoDiferenciadaEscola;
 use iEducar\Modules\Educacenso\Model\MantenedoraDaEscolaPrivada;
-use iEducar\Modules\Educacenso\Model\DependenciaAdministrativaEscola;
+use iEducar\Modules\Educacenso\Model\ModalidadeCurso;
+use iEducar\Modules\Educacenso\Model\PoderPublicoConveniado;
 use iEducar\Modules\Educacenso\Model\Regulamentacao;
 use iEducar\Modules\Educacenso\Model\SchoolManagerAccessCriteria;
 use iEducar\Modules\Educacenso\Model\SchoolManagerRole;
 use iEducar\Modules\Educacenso\Model\SituacaoFuncionamento;
 use iEducar\Modules\Educacenso\Model\TipoAtendimentoTurma;
+use iEducar\Modules\Educacenso\Model\TipoItinerarioFormativo;
 use iEducar\Modules\Educacenso\Model\TipoMediacaoDidaticoPedagogico;
+use iEducar\Modules\Educacenso\Model\UnidadeVinculadaComOutraInstituicao;
+use iEducar\Modules\Educacenso\Validator\AdministrativeDomainValidator;
 use iEducar\Modules\Educacenso\Validator\CnpjMantenedoraPrivada;
+use iEducar\Modules\Educacenso\Validator\FormasContratacaoEscolaValidator;
+use iEducar\Modules\Educacenso\Validator\FormaOrganizacaoTurma;
 use iEducar\Modules\Educacenso\Validator\InepNumberValidator;
-use iEducar\Modules\Educacenso\Validator\SchoolManagers;
 use iEducar\Modules\Educacenso\Validator\Telefone;
 use iEducar\Modules\Servidores\Model\FuncaoExercida;
-use iEducar\Modules\ValueObjects\SchoolManagerValueObject;
 use Illuminate\Support\Facades\DB;
-use iEducar\Modules\Educacenso\Model\LocalFuncionamento;
-use iEducar\Modules\Educacenso\Model\ModalidadeCurso;
-
-require_once 'lib/Portabilis/Controller/ApiCoreController.php';
-require_once 'intranet/include/clsBanco.inc.php';
-require_once 'lib/Portabilis/Date/Utils.php';
-require_once 'lib/App/Model/IedFinder.php';
-require_once 'lib/App/Model/Educacenso.php';
-require_once 'lib/App/Model/Educacenso/TipoMediacaoDidaticoPedagogico.php';
-require_once 'lib/App/Model/Educacenso/LocalFuncionamentoDiferenciado.php';
 
 /**
  * @deprecated Essa versão da API pública será descontinuada
@@ -90,7 +88,7 @@ class EducacensoAnaliseController extends ApiCoreController
             ];
         }
 
-        $nomeEscola = Portabilis_String_Utils::toUtf8(strtoupper($escola->nome));
+        $nomeEscola = Portabilis_String_Utils::toUtf8(mb_strtoupper($escola->nome));
         $codEscola = $escola->idEscola;
 
         $codInstituicao = $escola->idInstituicao;
@@ -166,7 +164,7 @@ class EducacensoAnaliseController extends ApiCoreController
             ];
         }
 
-        if ($escola->telefone == $escola->telefoneOutro) {
+        if ($escola->telefone && $escola->telefoneOutro && ($escola->telefone == $escola->telefoneOutro)) {
             $mensagem[] = [
                 'text' => "Dados para formular o registro 00 da escola {$nomeEscola} possui valor inválido. O campo (DDD) / Telefone 2 não pode ser igual ao campo (DDD) / Telefone 1;",
                 'path' => '(Escola > Cadastros > Escolas > Editar > Aba: Dados gerais > Campo: (DDD) / Telefone 2)',
@@ -213,8 +211,8 @@ class EducacensoAnaliseController extends ApiCoreController
 
         if (!$escola->orgaoVinculado && $escola->dependenciaAdministrativa != DependenciaAdministrativaEscola::PRIVADA) {
             $mensagem[] = [
-                'text' => "Dados para formular o registro 00 da escola {$nomeEscola} não encontrados. Verifique se órgão que a escola pública está vinculada foi informado;",
-                'path' => '(Escola > Cadastros > Escolas > Editar > Aba: Dados gerais > Campo: Órgão que a escola pública está vinculada)',
+                'text' => "Dados para formular o registro 00 da escola {$nomeEscola} não encontrados. Verifique se órgão ao qual a escola pública está vinculada foi informado;",
+                'path' => '(Escola > Cadastros > Escolas > Editar > Aba: Dados gerais > Campo: Órgão ao qual a escola pública está vinculada)',
                 'linkPath' => "/intranet/educar_escola_cad.php?cod_escola={$codEscola}",
                 'fail' => true
             ];
@@ -233,6 +231,20 @@ class EducacensoAnaliseController extends ApiCoreController
         if (!$escola->esferaAdministrativa && ($escola->regulamentacao == Regulamentacao::SIM || $escola->regulamentacao == Regulamentacao::EM_TRAMITACAO)) {
             $mensagem[] = [
                 'text' => "Dados para formular o registro 00 da escola {$nomeEscola} não encontrados. Verificamos que a escola é regulamentada ou está em tramitação pelo conselho/órgão, portanto é necessário informar qual a esfera administrativa;",
+                'path' => '(Escola > Cadastros > Escolas > Editar > Aba: Dados gerais >  Campo: Esfera administrativa do conselho ou órgão responsável pela Regulamentação/Autorização)',
+                'linkPath' => "/intranet/educar_escola_cad.php?cod_escola={$codEscola}",
+                'fail' => true
+            ];
+        }
+
+        if (!(new AdministrativeDomainValidator(
+                $escola->esferaAdministrativa,
+                $escola->regulamentacao,
+                $escola->dependenciaAdministrativa,
+                $escola->codigoIbgeMunicipio
+            ))->isValid()) {
+            $mensagem[] = [
+                'text' => "Dados para formular o registro 00 da escola {$nomeEscola} possui valor inválido. Verificamos que a esfera administrativa foi preenchida incorretamente.",
                 'path' => '(Escola > Cadastros > Escolas > Editar > Aba: Dados gerais >  Campo: Esfera administrativa do conselho ou órgão responsável pela Regulamentação/Autorização)',
                 'linkPath' => "/intranet/educar_escola_cad.php?cod_escola={$codEscola}",
                 'fail' => true
@@ -293,20 +305,11 @@ class EducacensoAnaliseController extends ApiCoreController
             ];
         }
 
-        if ($escola->dependenciaAdministrativa == MantenedoraDaEscolaPrivada::INSTITUICOES_SIM_FINS_LUCRATIVOS && $escola->situacaoFuncionamento == Regulamentacao::SIM) {
+        if ($escola->dependenciaAdministrativa == DependenciaAdministrativaEscola::PRIVADA) {
             if (!$escola->categoriaEscolaPrivada) {
                 $mensagem[] = [
                     'text' => "Dados para formular o registro 00 da escola {$nomeEscola} não encontrados. Verificamos que a dependência administrativa da escola é privada, portanto é necessário informar qual a categoria desta unidade escolar.",
                     'path' => '(Escola > Cadastros > Escolas > Editar > Aba: Dados do gerais > Campo: Categoria da escola privada)',
-                    'linkPath' => "/intranet/educar_escola_cad.php?cod_escola={$codEscola}",
-                    'fail' => true
-                ];
-            }
-
-            if (!$escola->conveniadaPoderPublico) {
-                $mensagem[] = [
-                    'text' => "Dados para formular o registro 00 da escola {$nomeEscola} não encontrados. Verificamos que a dependência administrativa da escola é privada, portanto é necessário informar qual o tipo de convênio desta unidade escolar.",
-                    'path' => '(Escola > Cadastros > Escolas > Editar > Aba: Dados gerais > Campo: Conveniada com poder público)',
                     'linkPath' => "/intranet/educar_escola_cad.php?cod_escola={$codEscola}",
                     'fail' => true
                 ];
@@ -320,6 +323,92 @@ class EducacensoAnaliseController extends ApiCoreController
                     'fail' => true
                 ];
             }
+        }
+
+        if ($escola->situacaoFuncionamento == SituacaoFuncionamento::EM_ATIVIDADE && empty(array_filter($escola->poderPublicoConveniado))) {
+            $mensagem[] = [
+                'text' => "Dados para formular o registro 00 da escola {$nomeEscola} não encontrados. Verifique se o poder público responsável pela parceria ou convênio entre a Administração Pública e outras instituições foi informado.",
+                'path' => '(Escola > Cadastros > Escolas > Editar > Aba: Dados gerais > Campo: Poder público responsável pela parceria ou convênio entre a Administração Pública e outras instituições)',
+                'linkPath' => "/intranet/educar_escola_cad.php?cod_escola={$codEscola}",
+                'fail' => true
+            ];
+        }
+
+        if (in_array(PoderPublicoConveniado::NAO_POSSUI, $escola->poderPublicoConveniado) && count($escola->poderPublicoConveniado) > 1) {
+            $mensagem[] = [
+                'text' => "Dados para formular o registro 10 da escola {$nomeEscola} possui valor inválido. Verificamos que o Poder público responsável pela parceria ou convênio entre a Administração Pública e outras instituições foi preenchido incorretamente.",
+                'path' => '(Escola > Cadastros > Escolas > Editar > Aba: Dados gerais > Campo: Poder público responsável pela parceria ou convênio entre a Administração Pública e outras instituições)',
+                'linkPath' => "/intranet/educar_escola_cad.php?cod_escola={$codEscola}",
+                'fail' => true
+            ];
+        }
+
+        if (
+            (in_array(PoderPublicoConveniado::MUNICIPAL, $escola->poderPublicoConveniado) ||
+            in_array(PoderPublicoConveniado::ESTADUAL, $escola->poderPublicoConveniado))
+            && empty(array_filter($escola->formasContratacaoPoderPublico))
+        ) {
+            $mensagem[] = [
+                'text' => "Dados para formular o registro 00 da escola {$nomeEscola} não encontrados. Verifique se as formas de contratação entre a Administração Pública e outras instituições foram informadas.",
+                'path' => '(Escola > Cadastros > Escolas > Editar > Aba: Dados gerais > Campo: Formas de contratação entre a Administração Pública e outras instituições)',
+                'linkPath' => "/intranet/educar_escola_cad.php?cod_escola={$codEscola}",
+                'fail' => true
+            ];
+        }
+
+        $formasContratacaoValidator = new FormasContratacaoEscolaValidator(
+            $escola->dependenciaAdministrativa,
+            $escola->categoriaEscolaPrivada,
+            $escola->formasContratacaoPoderPublico
+        );
+
+        if (!$formasContratacaoValidator->isValid()) {
+            $mensagem[] = [
+                'text' => "Dados para formular o registro 00 da escola {$nomeEscola} possui valor inválido. Verificamos que as formas de contratação entre a Administração Pública e outras instituições foram informadas incorretamente.",
+                'path' => '(Escola > Cadastros > Escolas > Editar > Aba: Dados gerais > Campo: Formas de contratação entre a Administração Pública e outras instituições)',
+                'linkPath' => "/intranet/educar_escola_cad.php?cod_escola={$codEscola}",
+                'fail' => true
+            ];
+        }
+
+        if (
+            (in_array(PoderPublicoConveniado::MUNICIPAL, $escola->poderPublicoConveniado) ||
+            in_array(PoderPublicoConveniado::ESTADUAL, $escola->poderPublicoConveniado)) &&
+            $escola->NaoPossuiQuantidadeDeMatriculasAtendidas()
+        ) {
+            $mensagem[] = [
+                'text' => "Dados para formular o registro 00 da escola {$nomeEscola} não encontrados. Verificamos que a escola não preencheu nenhuma informação referente ao Número de matrículas atendidas por meio da parceria ou convênio, portanto é necessário informar pelo menos um dos campos.",
+                'path' => '(Escola > Cadastros > Escolas > Editar > Aba: Matrículas atendidas por convênio > Seção: Número de matrículas atendidas por meio da parceria ou convênio)',
+                'linkPath' => "/intranet/educar_escola_cad.php?cod_escola={$codEscola}",
+                'fail' => true
+            ];
+        }
+
+        if ($escola->unidadeVinculada === UnidadeVinculadaComOutraInstituicao::EDUCACAO_BASICA && empty($escola->inepEscolaSede)) {
+            $mensagem[] = [
+                'text' => "Dados para formular o registro 00 da escola {$nomeEscola} não encontrados. Verificamos que essa unidade está vinculada à uma escola da educação básica, portanto é necessário informar o código INEP da escola sede.",
+                'path' => '(Escola > Cadastros > Escolas > Editar > Aba: Dados do ensino > Campo: Código da Escola Sede)',
+                'linkPath' => "/intranet/educar_escola_cad.php?cod_escola={$codEscola}",
+                'fail' => true
+            ];
+        }
+
+        if ($escola->unidadeVinculada === UnidadeVinculadaComOutraInstituicao::EDUCACAO_BASICA && $escola->inepEscolaSede == $escola->codigoInep) {
+            $mensagem[] = [
+                'text' => "Dados para formular o registro 00 da escola {$nomeEscola} possui valor inválido. Verificamos que essa unidade está vinculada à uma escola da educação básica, portanto o código INEP da escola sede deve ser diferente do INEP da escola atual.",
+                'path' => '(Escola > Cadastros > Escolas > Editar > Aba: Dados do ensino > Campo: Código da Escola Sede)',
+                'linkPath' => "/intranet/educar_escola_cad.php?cod_escola={$codEscola}",
+                'fail' => true
+            ];
+        }
+
+        if ($escola->unidadeVinculada === UnidadeVinculadaComOutraInstituicao::ENSINO_SUPERIOR && empty($escola->codigoIes)) {
+            $mensagem[] = [
+                'text' => "Dados para formular o registro 00 da escola {$nomeEscola} não encontrados. Verificamos que essa unidade está vinculada à uma instituição de ensino superior, portanto é necessário informar o código da instituição.",
+                'path' => '(Escola > Cadastros > Escolas > Editar > Aba: Dados do ensino > Campo: Código da IES)',
+                'linkPath' => "/intranet/educar_escola_cad.php?cod_escola={$codEscola}",
+                'fail' => true
+            ];
         }
 
         return [
@@ -374,7 +463,6 @@ class EducacensoAnaliseController extends ApiCoreController
                 'fail' => true
             ];
         }
-
 
         if ($escola->predioCompartilhadoOutraEscola == 1 && empty($escola->codigoInepEscolaCompartilhada)) {
             $mensagem[] = [
@@ -502,7 +590,7 @@ class EducacensoAnaliseController extends ApiCoreController
             ];
         }
 
-        if ((!$escola->numeroSalasUtilizadasForaPredio || $escola->predioEscolar()) && !$escola->numeroSalasUtilizadasDentroPredio) {
+        if ($escola->predioEscolar() && !$escola->numeroSalasUtilizadasDentroPredio) {
             $mensagem[] = [
                 'text' => "Dados para formular o registro 10 da escola {$escola->nomeEscola} não encontrados. Verifique se o número de salas de aula utilizadas na escola dentro do prédio escolar da escola foi informado.",
                 'path' => '(Escola > Cadastros > Escolas > Editar > Aba: Dependências > Campo: Número de salas de aula utilizadas na escola dentro do prédio escolar)',
@@ -511,10 +599,26 @@ class EducacensoAnaliseController extends ApiCoreController
             ];
         }
 
-        if (!$escola->numeroSalasUtilizadasDentroPredio && !$escola->numeroSalasUtilizadasForaPredio) {
+        if (!$escola->predioEscolar() && !$escola->numeroSalasUtilizadasForaPredio) {
             $mensagem[] = [
                 'text' => "Dados para formular o registro 10 da escola {$escola->nomeEscola} não encontrados. Verifique se o número de salas de aula utilizadas na escola fora do prédio escolar da escola foi informado.",
                 'path' => '(Escola > Cadastros > Escolas > Editar > Aba: Dependências > Campo: Número de salas de aula utilizadas na escola fora do prédio escolar)',
+                'linkPath' => "/intranet/educar_escola_cad.php?cod_escola={$escola->codEscola}",
+                'fail' => true
+            ];
+        }
+
+        if (count(array_filter($escola->equipamentos)) == 0) {
+            $mensagem[] = [
+                'text' => "Dados para formular o registro 10 da escola {$escola->nomeEscola} não encontrados. Verifique se os equipamentos da escola foram informados.",
+                'path' => '(Escola > Cadastros > Escolas > Editar > Aba: Equipamentos > Campo: Equipamentos da escola)',
+                'linkPath' => "/intranet/educar_escola_cad.php?cod_escola={$escola->codEscola}",
+                'fail' => true
+            ];
+        } elseif ($escola->equipamentosPreenchidosIncorretamente()) {
+            $mensagem[] = [
+                'text' => "Dados para formular o registro 10 da escola {$escola->nomeEscola} possui valor inválido. Verificamos que os equipamentos da escola foram preenchidos incorretamente.",
+                'path' => '(Escola > Cadastros > Escolas > Editar > Aba: Equipamentos > Campo: Equipamentos da escola)',
                 'linkPath' => "/intranet/educar_escola_cad.php?cod_escola={$escola->codEscola}",
                 'fail' => true
             ];
@@ -556,24 +660,6 @@ class EducacensoAnaliseController extends ApiCoreController
             ];
         }
 
-        if ($escola->possuiComputadores() && empty($escola->redeLocal)) {
-            $mensagem[] = [
-                'text' => "Dados para formular o registro 10 da escola {$escola->nomeEscola} não encontrados. Verifique a rede local de interligação de computadores foi informada.",
-                'path' => '(Escola > Cadastros > Escolas > Editar > Aba: Equipamentos > Campo: Rede local de interligação de computadores)',
-                'linkPath' => "/intranet/educar_escola_cad.php?cod_escola={$escola->codEscola}",
-                'fail' => true
-            ];
-        }
-
-        if ($escola->redeLocalInexistenteEOutrosCamposPreenchidos()) {
-            $mensagem[] = [
-                'text' => "Dados para formular o registro 10 da escola {$escola->nomeEscola} possui valor inválido. Verificamos que a rede local de interligação de computadores foi preenchida incorretamente.",
-                'path' => '(Escola > Cadastros > Escolas > Editar > Aba: Equipamentos > Campo: Rede local de interligação de computadores)',
-                'linkPath' => "/intranet/educar_escola_cad.php?cod_escola={$escola->codEscola}",
-                'fail' => true
-            ];
-        }
-
         if ($escola->equipamentosAcessoInternetComputadorMesa() && $escola->quantidadeComputadoresAlunosNaoPreenchida()) {
             $mensagem[] = [
                 'text' => "Dados para formular o registro 10 da escola {$escola->nomeEscola} não encontrados. Verifique se pelo menos um dos campos da seção Quantidade de computadores de uso dos alunos foi preenchido.",
@@ -583,7 +669,7 @@ class EducacensoAnaliseController extends ApiCoreController
             ];
         }
 
-        if (!$escola->quantidadeProfissionaisPreenchida()) {
+        if (!$escola->semFuncionariosParaFuncoes && !$escola->quantidadeProfissionaisPreenchida()) {
             $mensagem[] = [
                 'text' => "Dados para formular o registro 10 da escola {$escola->nomeEscola} não encontrados. Verificamos que a escola não preencheu nenhuma informação referente à quantidade de profissionais, portanto é necessário informar pelo menos um profissional.",
                 'path' => '(Escola > Cadastros > Escolas > Editar > Aba: Recursos > Seção: Quantidade de profissionais)',
@@ -601,10 +687,17 @@ class EducacensoAnaliseController extends ApiCoreController
             ];
         }
 
-        if (empty($escola->organizacaoEnsino) && $escola->HasDifferentStepsOfChildEducation()) {
+        if (count(array_filter($escola->instrumentosPedagogicos)) == 0) {
             $mensagem[] = [
-                'text' => "Dados para formular o registro 10 da escola {$escola->nomeEscola} não encontrados. Verificamos que o campo: Forma(s) de organização do ensino não foi informado.",
-                'path' => '(Escola > Cadastros > Escolas > Editar > Aba: Dados do ensino > Campo: Forma(s) de organização do ensino)',
+                'text' => "Dados para formular o registro 10 da escola {$escola->nomeEscola} não encontrados. Verifique se os instrumentos, materiais socioculturais e/ou pedagógicos da escola foram informados.",
+                'path' => '(Escola > Cadastros > Escolas > Editar > Aba: Dados do ensino > Campo: Instrumentos, materiais socioculturais e/ou pedagógicos em uso na escola para o desenvolvimento de atividades de ensino aprendizagem)',
+                'linkPath' => "/intranet/educar_escola_cad.php?cod_escola={$escola->codEscola}",
+                'fail' => true
+            ];
+        } elseif ($escola->instrumentosPedagogicosPreenchidosIncorretamente()) {
+            $mensagem[] = [
+                'text' => "Dados para formular o registro 10 da escola {$escola->nomeEscola} possui valor inválido. Verificamos que os instrumentos, materiais socioculturais e/ou pedagógicos da escola foram preenchidos incorretamente.",
+                'path' => '(Escola > Cadastros > Escolas > Editar > Aba: Dados do ensino > Campo: Instrumentos, materiais socioculturais e/ou pedagógicos em uso na escola para o desenvolvimento de atividades de ensino aprendizagem)',
                 'linkPath' => "/intranet/educar_escola_cad.php?cod_escola={$escola->codEscola}",
                 'fail' => true
             ];
@@ -700,8 +793,8 @@ class EducacensoAnaliseController extends ApiCoreController
         $chavesTurmas = [];
 
         foreach ($turmas as $turma) {
-            $nomeEscola = strtoupper($turma->nomeEscola);
-            $nomeTurma = strtoupper($turma->nomeTurma);
+            $nomeEscola = mb_strtoupper($turma->nomeEscola);
+            $nomeTurma = mb_strtoupper($turma->nomeTurma);
             $atividadeComplementar = ($turma->tipoAtendimento == 4); //Código 4 fixo no cadastro de turma
             $existeAtividadeComplementar = !empty(array_filter($turma->atividadesComplementares));
 
@@ -738,7 +831,7 @@ class EducacensoAnaliseController extends ApiCoreController
                 $mensagem[] = [
                     'text' => "Dados para formular o registro 20 da escola {$turma->nomeEscola} não encontrados. Verificamos que a turma {$nomeTurma} não possui nenhum docente vinculado.",
                     'path' => '(Servidores > Cadastros > Servidores)',
-                    'linkPath' => "/intranet/educar_servidor_lst.php",
+                    'linkPath' => '/intranet/educar_servidor_lst.php',
                     'fail' => true
                 ];
             }
@@ -747,7 +840,7 @@ class EducacensoAnaliseController extends ApiCoreController
                 $mensagem[] = [
                     'text' => "Dados para formular o registro 20 da escola {$turma->nomeEscola} não encontrados. Verificamos que a turma {$nomeTurma} não possui nenhum Docente ou Docente titular - coordenador de tutoria (de módulo ou disciplina) - EAD vinculado.",
                     'path' => '(Servidores > Cadastros > Servidores)',
-                    'linkPath' => "/intranet/educar_servidor_lst.php",
+                    'linkPath' => '/intranet/educar_servidor_lst.php',
                     'fail' => true
                 ];
             }
@@ -756,7 +849,7 @@ class EducacensoAnaliseController extends ApiCoreController
                 $mensagem[] = [
                     'text' => "Dados para formular o registro 20 da escola {$turma->nomeEscola} possui valor inválido. Verificamos que a turma {$nomeTurma} possui vínculo apenas com docente(s): Tradutor(es)-Intérprete(s) de Libras ou Docente(s) tutor(es) - Auxiliar(es) (de módulo ou disciplina) - EAD.",
                     'path' => '(Servidores > Cadastros > Servidores)',
-                    'linkPath' => "/intranet/educar_servidor_lst.php",
+                    'linkPath' => '/intranet/educar_servidor_lst.php',
                     'fail' => true
                 ];
             }
@@ -765,7 +858,7 @@ class EducacensoAnaliseController extends ApiCoreController
                 $mensagem[] = [
                     'text' => "Dados para formular o registro 20 da escola {$turma->nomeEscola} possui valor inválido. Verificamos que a turma {$nomeTurma} possui vínculo com docente(s): Tradutor(es)-Intérprete(s) de Libras, porém não possui nenhum aluno(a) ou outro profissional escolar em sala de aula com surdez, deficiência auditiva ou surdocegueira.",
                     'path' => '(Servidores > Cadastros > Servidores)',
-                    'linkPath' => "/intranet/educar_servidor_lst.php",
+                    'linkPath' => '/intranet/educar_servidor_lst.php',
                     'fail' => true
                 ];
             }
@@ -795,14 +888,13 @@ class EducacensoAnaliseController extends ApiCoreController
                     'linkPath' => "/intranet/educar_turma_cad.php?cod_turma={$turma->codTurma}",
                     'fail' => true
                 ];
-            } else if (!empty($turma->horaInicial) && !empty($turma->horaFinal) && !$turma->horarioFuncionamentoValido()) {
+            } elseif (!empty($turma->horaInicial) && !empty($turma->horaFinal) && !$turma->horarioFuncionamentoValido()) {
                 $mensagem[] = [
                     'text' => "Dados para formular o registro 20 da escola {$turma->nomeEscola} possui valor inválido. Verifique se o horário da turma {$nomeTurma} foi preenchido com um valor válido.",
                     'path' => '(Escola > Cadastros > Turmas > Editar > Aba: Dados gerais > Seção: Horário de funcionamento da turma)',
                     'linkPath' => "/intranet/educar_turma_cad.php?cod_turma={$turma->codTurma}",
                     'fail' => true
                 ];
-
             }
 
             if (empty(array_filter($turma->diasSemana)) && $turma->tipoMediacaoDidaticoPedagogico == App_Model_TipoMediacaoDidaticoPedagogico::PRESENCIAL) {
@@ -834,11 +926,42 @@ class EducacensoAnaliseController extends ApiCoreController
                 ];
             }
 
+            if ($turma->tipoAtendimento == TipoAtendimentoTurma::ESCOLARIZACAO && count(array_filter($turma->estruturaCurricular)) == 0) {
+                $mensagem[] = [
+                    'text' => "Dados para formular o registro 20 da escola {$turma->nomeEscola} não encontrados. Verifique se a estrutura curricular da turma {$nomeTurma} foi informada.",
+                    'path' => '(Escola > Cadastros > Turmas > Editar > Aba: Dados adicionais > Campo: Estrutura curricular)',
+                    'linkPath' => "/intranet/educar_turma_cad.php?cod_turma={$turma->codTurma}",
+                    'fail' => true
+                ];
+            }
+
+            if (
+                $turma->tipoMediacaoDidaticoPedagogico == App_Model_TipoMediacaoDidaticoPedagogico::SEMIPRESENCIAL &&
+                count(array_filter($turma->estruturaCurricular)) > 0 &&
+                !in_array(EstruturaCurricular::FORMACAO_GERAL_BASICA, $turma->estruturaCurricular)
+            ) {
+                $mensagem[] = [
+                    'text' => "Dados para formular o registro 20 da escola {$turma->nomeEscola} possui valor inválido. Verificamos que o tipo de mediação didático pedagógico da turma {$nomeTurma} é semipresencial, portanto a turma deve ter estrutura curricular de formação geral básica.",
+                    'path' => '(Escola > Cadastros > Turmas > Editar > Aba: Dados adicionais > Campo: Estrutura curricular)',
+                    'linkPath' => "/intranet/educar_turma_cad.php?cod_turma={$turma->codTurma}",
+                    'fail' => true
+                ];
+            }
+
             if ($atividadeComplementar && !$existeAtividadeComplementar) {
                 $mensagem[] = [
                     'text' => "Dados para formular o registro 20 da escola {$turma->nomeEscola} não encontrados. Verificamos que a turma {$nomeTurma} é de atividades complementares, portanto é necessário informar quais atividades complementares são trabalhadas.",
                     'path' => '(Escola > Cadastros > Turmas > Editar > Aba: Dados adicionais > Campo: Tipos de atividades complementares)',
                     'linkPath' => "/intranet/educar_turma_cad.php?cod_turma={$turma->codTurma}",
+                    'fail' => true
+                ];
+            }
+
+            if ($turma->modalidadeCurso == ModalidadeCurso::EJA && $turma->tipoAtendimento == TipoAtendimentoTurma::ATIVIDADE_COMPLEMENTAR) {
+                $mensagem[] = [
+                    'text' => "Dados para formular o registro 20 da escola {$turma->nomeEscola} possui valor inválido. Verificamos que a modalidade do curso da turma {$nomeTurma} é Educação de Jovens e Adultos (EJA), portanto o tipo de atendimento da turma não pode ser atividade complementar.",
+                    'path' => '(Escola > Cadastros > Cursos > Editar > Campo: Modalidade do curso)',
+                    'linkPath' => "/intranet/educar_curso_cad.php?cod_curso={$turma->codCurso}",
                     'fail' => true
                 ];
             }
@@ -875,14 +998,14 @@ class EducacensoAnaliseController extends ApiCoreController
                 ];
             }
 
-            if ($turma->tipoAtendimento == 0 && is_null($turma->etapaEducacenso)) {
+            if (($turma->formacaoGeralBasica() || $turma->estruturaCurricularNaoSeAplica()) && is_null($turma->etapaEducacenso)) {
                 $mensagem[] = [
                     'text' => "Dados para formular o registro 20 da escola {$turma->nomeEscola} não encontrados. Verifique se alguma opção de etapa de ensino da turma {$nomeTurma} foi informada.",
                     'path' => '(Escola > Cadastros > Turmas > Editar > Aba: Dados adicionais > Campo: Etapa de ensino)',
                     'linkPath' => "/intranet/educar_turma_cad.php?cod_turma={$turma->codTurma}",
                     'fail' => true
                 ];
-            } elseif ($turma->tipoAtendimento == 0) {
+            } elseif ($turma->formacaoGeralBasica() || $turma->estruturaCurricularNaoSeAplica()) {
                 $valid = true;
                 $opcoesEtapaEducacenso = '';
 
@@ -934,13 +1057,12 @@ class EducacensoAnaliseController extends ApiCoreController
                         }
                         break;
                     case App_Model_TipoMediacaoDidaticoPedagogico::EDUCACAO_A_DISTANCIA:
-                        if (!in_array($turma->etapaEducacenso, [30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 70, 71, 73, 74, 64, 67, 68])) {
-                            $opcoesEtapaEducacenso = '30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 70, 71, 73, 74, 64, 67 ou 68';
+                        if (!in_array($turma->etapaEducacenso, [25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 70, 71, 73, 74, 64, 67, 68])) {
+                            $opcoesEtapaEducacenso = '25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 70, 71, 73, 74, 64, 67 ou 68';
                             $valid = false;
                         }
                         break;
                 }
-
 
                 if (!$valid) {
                     $descricaoTipoMediacao = (App_Model_TipoMediacaoDidaticoPedagogico::getInstance()->getEnums())[$turma->tipoMediacaoDidaticoPedagogico];
@@ -952,12 +1074,87 @@ class EducacensoAnaliseController extends ApiCoreController
                     ];
                 }
 
-                if (in_array($turma->localFuncionamentoDiferenciado, [App_Model_LocalFuncionamentoDiferenciado::UNIDADE_ATENDIMENTO_SOCIOEDUCATIVO, App_Model_LocalFuncionamentoDiferenciado::UNIDADE_PRISIONAL]) && in_array($turma->etapaEducacenso, [1, 2, 3, 56]) ) {
+                $opcoesValidas = [];
+                $estruturaCurricularDescritiva = '';
+
+                if ($turma->itinerarioFormativo() && $turma->etapaEducacenso) {
+                    $estruturaCurricularDescritiva = 'Itinerário formativo';
+                    $opcoesValidas = [24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 71, 74, 67];
+                    $valid = in_array($turma->etapaEducacenso, $opcoesValidas);
+                }
+
+                if ($turma->estruturaCurricularNaoSeAplica() && $turma->etapaEducacenso) {
+                    $estruturaCurricularDescritiva = 'Não se aplica';
+                    $opcoesValidas = [1, 2, 3, 24, 39, 40, 64, 68];
+                    $valid = in_array($turma->etapaEducacenso, $opcoesValidas);
+                }
+
+                if(!$valid) {
+                    $opcoesValidas = implode(', ', $opcoesValidas);
+                    $mensagem[] = [
+                        'text' => "Dados para formular o registro 20 da escola {$turma->nomeEscola} possui valor inválido. Verificamos que a estrutura curricular da turma {$nomeTurma} é: {$estruturaCurricularDescritiva}, portanto a etapa de ensino deve ser uma das seguintes opções: {$opcoesValidas}",
+                        'path' => '(Escola > Cadastros > Turmas > Editar > Aba: Dados adicionais > Campo: Etapa de ensino)',
+                        'linkPath' => "/intranet/educar_turma_cad.php?cod_turma={$turma->codTurma}",
+                        'fail' => true
+                    ];
+                }
+
+                if (in_array($turma->localFuncionamentoDiferenciado, [App_Model_LocalFuncionamentoDiferenciado::UNIDADE_ATENDIMENTO_SOCIOEDUCATIVO, App_Model_LocalFuncionamentoDiferenciado::UNIDADE_PRISIONAL]) && in_array($turma->etapaEducacenso, [1, 2, 3, 56])) {
                     $descricaoLocalDiferenciado = $turma->getLocalFuncionamentoDiferenciadoDescription();
                     $mensagem[] = [
                         'text' => "Dados para formular o registro 20 da escola {$turma->nomeEscola}  possui valor inválido. Verificamos que o local de funcionamento diferenciado da turma {$nomeTurma} é {$descricaoLocalDiferenciado}, portanto a etapa de ensino não pode ser nenhuma das seguintes opções: 1, 2, 3 ou 56.",
                         'path' => '(Escola > Cadastros > Turmas > Editar > Aba: Dados adicionais > Campo: Etapa de ensino)',
                         'linkPath' => "/intranet/educar_turma_cad.php?cod_turma={$turma->codTurma}",
+                        'fail' => true
+                    ];
+                }
+            }
+
+            if ($turma->formacaoGeralBasica() && $turma->itinerarioFormativo() && in_array($turma->etapaEducacenso, [25, 30, 35])) {
+                $descricaoEtapa = $turma->etapaEducacensoDescritiva();
+                $mensagem[] = [
+                    'text' => "<span class='avisos-educacenso'><b>Aviso não impeditivo:</b> Dados para formular o registro 20 da escola {$turma->nomeEscola} sujeito à valor inválido. Verificamos que a turma {$nomeTurma} é de formação geral básica e itinerário formativo, e a etapa de ensino é {$descricaoEtapa}, portanto você pode definir os itinerários dos alunos individualmente.",
+                    'path' => '(Escola > Cadastros > Alunos > Visualizar > Itinerário formativo > Campo: Tipo do itinerário formativo)',
+                    'linkPath' => "/intranet/educar_aluno_lst.php",
+                    'fail' => false
+                ];
+            }
+
+            $formasDeOrganizacaoDaTurma = new FormaOrganizacaoTurma($turma);
+
+            if (!empty($turma->etapaEducacenso) && !in_array($turma->etapaEducacenso, [1, 2, 3, 24]) && empty($turma->formasOrganizacaoTurma)) {
+                $mensagem[] = [
+                    'text' => "Dados para formular o registro 20 da escola {$turma->nomeEscola} não encontrados. Verifique se a forma de organização da turma {$nomeTurma} foi informada.",
+                    'path' => '(Escola > Cadastros > Turmas > Editar > Aba: Dados adicionais > Campo: Formas de organização da turma)',
+                    'linkPath' => "/intranet/educar_turma_cad.php?cod_turma={$turma->codTurma}",
+                    'fail' => true
+                ];
+            } elseif (!$formasDeOrganizacaoDaTurma->isValid()) {
+                $descricaoEtapa = $turma->etapaEducacensoDescritiva();
+                $descricaoFormaOrganizacao = $turma->formaOrganizacaoTurmaDescritiva();
+                $mensagem[] = [
+                    'text' => "Dados para formular o registro 20 da escola {$turma->nomeEscola} possui valor inválido. Verificamos que etapa de ensino da turma {$nomeTurma} é {$descricaoEtapa}, portanto a forma de organização da turma não pode ser {$descricaoFormaOrganizacao}.",
+                    'path' => '(Escola > Cadastros > Turmas > Editar > Aba: Dados adicionais > Campo: Formas de organização da turma)',
+                    'linkPath' => "/intranet/educar_turma_cad.php?cod_turma={$turma->codTurma}",
+                    'fail' => true
+                ];
+            }
+
+            if ($turma->itinerarioFormativo() && count(array_filter($turma->unidadesCurriculares)) == 0) {
+                $mensagem[] = [
+                    'text' => "Dados para formular o registro 20 da escola {$turma->nomeEscola} não encontrados. Verifique se as unidades curriculares da turma {$nomeTurma} foram informadas.",
+                    'path' => '(Escola > Cadastros > Turmas > Editar > Aba: Dados adicionais > Campo: Unidade curricular)',
+                    'linkPath' => "/intranet/educar_turma_cad.php?cod_turma={$turma->codTurma}",
+                    'fail' => true
+                ];
+            }
+
+            if (count($turma->unidadesCurricularesSemDocenteVinculado()) > 0) {
+                foreach ($turma->unidadesCurricularesSemDocenteVinculado() as $unidadeCurricular) {
+                    $mensagem[] = [
+                        'text' => "Dados para formular o registro 20 da escola {$turma->nomeEscola} não encontrados. Verificamos que a unidade curricular {$unidadeCurricular} faz parte da turma {$nomeTurma}, portanto deve haver um docente vinculado à mesma.",
+                        'path' => '(Escola > Cadastros > Turmas > Editar > Aba: Dados adicionais > Campo: Unidade(s) curricular(es) que leciona)',
+                        'linkPath' => '/intranet/educar_servidor_lst.php',
                         'fail' => true
                     ];
                 }
@@ -974,7 +1171,7 @@ class EducacensoAnaliseController extends ApiCoreController
 
             try {
                 $componentes = $turma->componentes();
-            } catch (Throwable $exception) {
+            } catch (Throwable) {
                 $mensagem[] = [
                     'text' => "Dados para formular o registro 20 da escola {$turma->nomeEscola} não encontrados. Verifique se alguma disciplina da turma {$nomeTurma} foi informada",
                     'path' => '(Escola > Cadastros > Turmas > Editar > Aba: Dados gerais > Seção: Componentes curriculares definidos em séries da escola)',
@@ -1003,7 +1200,7 @@ class EducacensoAnaliseController extends ApiCoreController
                     $mensagem[] = [
                         'text' => $educacaoDistancia ? "Dados para formular o registro 20 da escola {$turma->nomeEscola} não encontrados. Verificamos que o tipo de mediação da turma {$nomeTurma} é educação a distância, portanto a disciplina {$discipline->nome} deve possuir um docente vinculado." : "<span class='avisos-educacenso'><b>Aviso não impeditivo:</b> Dados para formular o registro 20 da escola {$turma->nomeEscola} não encontrados. A disciplina {$discipline->nome} da turma {$nomeTurma} não possui docente vinculado, portanto será exportada como: 2 (Sim, oferece disciplina sem docente vinculado).</span>",
                         'path' => '(Servidores > Cadastros > Servidores)',
-                        'linkPath' => "/intranet/educar_servidor_lst.php",
+                        'linkPath' => '/intranet/educar_servidor_lst.php',
                         'fail' => $educacaoDistancia
                     ];
                 }
@@ -1011,16 +1208,16 @@ class EducacensoAnaliseController extends ApiCoreController
                 $componenteNulo = null;
 
                 foreach ($componentes as $componente) {
-                    if (empty($componente->get('codigo_educacenso'))) {
+                    if (empty($componente->codigo_educacensos)) {
                         $componenteNulo = $componente;
                         break;
                     }
 
-                    if (in_array($componente->get('codigo_educacenso'), $turma->getForbiddenDisciplines())) {
+                    if (in_array($componente->codigo_educacenso, $turma->getForbiddenDisciplines())) {
                         $mensagem[] = [
-                            'text' => "<span class='avisos-educacenso'><b>Aviso não impeditivo:</b> Dados para formular o registro 20 da escola {$turma->nomeEscola} não encontrados. A disciplina {$componente->get('nome')} da turma {$nomeTurma} não está de acordo com a Tabela de Regras de Disciplinas do Censo, portanto não será exportada.</span>",
+                            'text' => "<span class='avisos-educacenso'><b>Aviso não impeditivo:</b> Dados para formular o registro 20 da escola {$turma->nomeEscola} não encontrados. A disciplina {$componente->nome} da turma {$nomeTurma} não está de acordo com a Tabela de Regras de Disciplinas do Censo, portanto não será exportada.</span>",
                             'path' => '(Escola > Cadastros > Componentes curriculares > Editar > Disciplina Educacenso)',
-                            'linkPath' => "/module/ComponenteCurricular/edit?id={$componente->get('id')}",
+                            'linkPath' => "/module/ComponenteCurricular/edit?id={$componente->id}",
                             'fail' => false
                         ];
                     }
@@ -1030,7 +1227,7 @@ class EducacensoAnaliseController extends ApiCoreController
                     $mensagem = [[
                         'text' => "Dados para formular o registro 20 da escola {$turma->nomeEscola} não encontrados. Verifique se a disciplina do educacenso foi informada para a disciplina {$componente->get('nome')}.",
                         'path' => '(Escola > Cadastros > Componentes curriculares > Editar > Disciplina Educacenso)',
-                        'linkPath' => "/module/ComponenteCurricular/edit?id={$componenteNulo->get('id')}",
+                        'linkPath' => "/module/ComponenteCurricular/edit?id={$componenteNulo->id}",
                         'fail' => true
                     ]];
 
@@ -1080,9 +1277,9 @@ class EducacensoAnaliseController extends ApiCoreController
         $mensagem = [];
 
         $mensagem[] = [
-            'text' => "<span class='avisos-educacenso'><b>Aviso não impeditivo:</b> O campo: País de residência possui valor padrão: Brasil. Certifique-se que os(as) alunos(as) ou docentes residentes de outro país, que não seja Brasil, possuam o País de residência informado corretamente.</span>",
+            'text' => '<span class=\'avisos-educacenso\'><b>Aviso não impeditivo:</b> O campo: País de residência possui valor padrão: Brasil. Certifique-se que os(as) alunos(as) ou docentes residentes de outro país, que não seja Brasil, possuam o País de residência informado corretamente.</span>',
             'path' => '(Pessoas > Cadastros > Pessoas físicas > Editar > Campo: País de residência)',
-            'linkPath' => "/intranet/atendidos_lst.php",
+            'linkPath' => '/intranet/atendidos_lst.php',
             'fail' => false
         ];
 
@@ -1090,7 +1287,7 @@ class EducacensoAnaliseController extends ApiCoreController
             $mensagem[] = [
                 'text' => "Dados para formular o registro 30 da escola {$pessoas[0]->nomeEscola} não encontrados. Verifique se a(s) raça(s) do educacenso foi(ram) informada(s).",
                 'path' => '(Pessoas > Cadastros > Tipos > Tipos de cor ou raça)',
-                'linkPath' => "/intranet/educar_raca_lst.php",
+                'linkPath' => '/intranet/educar_raca_lst.php',
                 'fail' => true
             ];
         }
@@ -1099,7 +1296,7 @@ class EducacensoAnaliseController extends ApiCoreController
             $mensagem[] = [
                 'text' => "Dados para formular o registro 30 da escola {$pessoas[0]->nomeEscola} não encontrados. Verifique se a(s) deficiência(s) do educacenso foi(ram) informada(s).",
                 'path' => '(Pessoas > Cadastros > Tipos > Tipos de deficiência)',
-                'linkPath' => "/intranet/educar_deficiencia_lst.php",
+                'linkPath' => '/intranet/educar_deficiencia_lst.php',
                 'fail' => true
             ];
         }
@@ -1156,20 +1353,12 @@ class EducacensoAnaliseController extends ApiCoreController
         $registro40 = new Registro40Data($educacensoRepository, $registro40Model);
         $gestores = $registro40->getData($escolaId);
 
-        /** @var todo Refatorar para usar o model School */
-        $escola = DB::select(DB::raw('SELECT relatorio.get_nome_escola(:escolaId) as nome'), [$escolaId])[0];
-        $nomeEscola = $escola->nome;
+        $escola = LegacySchool::query()->find($escolaId);
+
+        $nomeEscola = $escola->name;
         $codEscola = $escolaId;
 
         $mensagem = [];
-        if (count($gestores) > 3) {
-                $mensagem[] = [
-                    'text' => "Dados para formular o registro 40 da escola {$nomeEscola} possui valor inválido. A escola não pode ter mais de 3 gestores escolares.",
-                    'path' => '(Escola > Cadastros > Escolas > Editar > Aba: dados gerais > Tabela Gestores escolares)',
-                    'linkPath' => "/intranet/educar_escola_cad.php?cod_escola={$codEscola}",
-                    'fail' => true
-                ];
-        }
 
         if (empty($gestores)) {
             $mensagem[] = [
@@ -1183,6 +1372,15 @@ class EducacensoAnaliseController extends ApiCoreController
                 'mensagens' => $mensagem,
                 'title' => 'Análise exportação - Registro 40'
             ];
+        }
+
+        if (count($gestores) > 3) {
+            $mensagem[] = [
+                    'text' => "Dados para formular o registro 40 da escola {$nomeEscola} possui valor inválido. A escola não pode ter mais de 3 gestores escolares.",
+                    'path' => '(Escola > Cadastros > Escolas > Editar > Aba: dados gerais > Tabela Gestores escolares)',
+                    'linkPath' => "/intranet/educar_escola_cad.php?cod_escola={$codEscola}",
+                    'fail' => true
+                ];
         }
 
         foreach ($gestores as $gestor) {
@@ -1243,15 +1441,18 @@ class EducacensoAnaliseController extends ApiCoreController
                 ];
             }
 
-            if (!$gestor->tipoVinculo && $gestor->cargo == SchoolManagerRole::DIRETOR && $gestor->isDependenciaAdministrativaPublica()) {
+            if (!$gestor->tipoVinculo &&
+                $gestor->cargo === SchoolManagerRole::DIRETOR &&
+                $gestor->isDependenciaAdministrativaPublica() &&
+                $escola->situacao_funcionamento === SituacaoFuncionamento::EM_ATIVIDADE
+            ) {
                 $mensagem[] = [
-                    'text' => "Dados para formular o registro 40 da escola {$nomeEscola} não encontrados. Verificamos que o gestor escolar {$nomeGestor} é diretor(a) e a dependência administrativa da escola é {$dependenciaAdministraticaDesc}, portanto é necessário informar o tipo de vínculo.",
+                    'text' => "Dados para formular o registro 40 da escola {$nomeEscola} não encontrados. Verificamos que o gestor escolar {$nomeGestor} é diretor(a) e a dependência administrativa da escola é {$dependenciaAdministraticaDesc} e a situação de funcionamento da escola é em atividade, portanto é necessário informar o tipo de vínculo.",
                     'path' => '(Escola > Cadastros > Escolas > Editar > Aba: Dados gerais > Tabela Gestores escolares > Link: Dados adicionais do(a) gestor(a) > Campo: Tipo de vínculo)',
                     'linkPath' => "/intranet/educar_escola_cad.php?cod_escola={$codEscola}",
                     'fail' => true
                 ];
             }
-
 
             if (!(new InepNumberValidator($gestor->inepGestor))->isValid()) {
                 $mensagem[] = [
@@ -1281,6 +1482,7 @@ class EducacensoAnaliseController extends ApiCoreController
 
         if (empty($docentes)) {
             $this->messenger->append('Nenhum docente encontrado.');
+
             return ['title' => 'Análise exportação - Registro 50'];
         }
 
@@ -1318,6 +1520,21 @@ class EducacensoAnaliseController extends ApiCoreController
             if ($docente->funcaoDocente == FuncaoExercida::MONITOR_ATIVIDADE_COMPLEMENTAR  && $docente->tipoAtendimentoTurma != TipoAtendimentoTurma::ATIVIDADE_COMPLEMENTAR) {
                 $mensagem[] = [
                     'text' => "Dados para formular o registro 50 da escola {$docente->nomeEscola} possui valor inválido. Verificamos que o tipo de atendimento da turma {$docente->nomeTurma} é {$tipoAtendimentoDesc}, portanto a função exercida do(a) docente {$docente->nomeDocente} não pode ser profissional/monitor de atividade complementar.",
+                    'path' => '(Servidores > Cadastros > Servidores > Vincular professor a turmas > Editar > Campo: Função exercida)',
+                    'linkPath' => "/intranet/educar_servidor_vinculo_turma_cad.php?id={$docente->idAlocacao}&ref_cod_instituicao={$docente->idInstituicao}&ref_cod_servidor={$docente->idServidor}",
+                    'fail' => true
+                ];
+            }
+
+            $etapasValidasParaInstrutor = [30, 31, 32, 33, 34, 39, 40, 73, 74, 64, 67, 68];
+
+            if ($docente->funcaoDocente == FuncaoExercida::INSTRUTOR_EDUCACAO_PROFISSIONAL &&
+                (
+                    !in_array(EstruturaCurricular::ITINERARIO_FORMATIVO, $docente->estruturaCurricular)
+                    || !in_array($docente->etapaEducacensoTurma, $etapasValidasParaInstrutor)
+                )) {
+                $mensagem[] = [
+                    'text' => "Dados para formular o registro 50 da escola {$docente->nomeEscola} possui valor inválido. Verificamos que estrutura curricular da turma {$docente->nomeTurma} é {$docente->estruturasCurricularesDescritivas()} e a etapa de ensino é {$docente->estapaEducacensoDescritiva()}, portanto a função exercida do(a) docente {$docente->nomeDocente} não pode ser instrutor da Educação Profissional.",
                     'path' => '(Servidores > Cadastros > Servidores > Vincular professor a turmas > Editar > Campo: Função exercida)',
                     'linkPath' => "/intranet/educar_servidor_vinculo_turma_cad.php?id={$docente->idAlocacao}&ref_cod_instituicao={$docente->idInstituicao}&ref_cod_servidor={$docente->idServidor}",
                     'fail' => true
@@ -1379,9 +1596,9 @@ class EducacensoAnaliseController extends ApiCoreController
         $avaliableTimeService->onlyUntilEnrollmentDate($educacensoDate)->onlySchoolClassesInformedOnCensus();
 
         foreach ($alunos as $aluno) {
-            $nomeEscola = strtoupper($aluno->nomeEscola);
-            $nomeAluno = strtoupper($aluno->nomeAluno);
-            $nomeTurma = strtoupper($aluno->nomeTurma);
+            $nomeEscola = mb_strtoupper($aluno->nomeEscola);
+            $nomeAluno = mb_strtoupper($aluno->nomeAluno);
+            $nomeTurma = mb_strtoupper($aluno->nomeTurma);
             $codigoAluno = $aluno->codigoAluno;
             $codigoTurma = $aluno->codigoTurma;
             $codigoMatricula = $aluno->codigoMatricula;
@@ -1395,7 +1612,7 @@ class EducacensoAnaliseController extends ApiCoreController
                 ];
             }
 
-            if ($aluno->tipoAtendimentoTurma ==  $aluno->isAtividadeComplementarOrAee()) {
+            if ($aluno->isAtividadeComplementarOrAee()) {
                 $countAtividadesComplementar[$codigoAluno][] = [
                     'codigoAluno' => $codigoAluno,
                     'nomeAluno' => $nomeAluno,
@@ -1412,7 +1629,65 @@ class EducacensoAnaliseController extends ApiCoreController
                 ];
             }
 
-            if (!$aluno->tipoAtendimentoMatricula && $aluno->tipoAtendimentoTurma == TipoAtendimentoTurma::AEE) {
+            if ($aluno->analisaDadosItinerario()) {
+                if (
+                    in_array(EstruturaCurricular::ITINERARIO_FORMATIVO, $aluno->estruturaCurricularTurma) &&
+                    count($aluno->estruturaCurricularTurma) === 1 &&
+                    $aluno->tipoItinerarioNaoPreenchido()
+                ) {
+                    $mensagem[] = [
+                        'text' => "Dados para formular o registro 60 da escola {$nomeEscola} não encontrados. Verificamos que a estrutura curricular da turma {$nomeTurma} é itinerário formativo, portanto é necessário informar o tipo do itinerário formativo do(a) aluno(a) {$nomeAluno}.",
+                        'path' => '(Escola > Cadastros > Alunos > Visualizar > Itinerário formativo > Campo: Tipo do itinerário formativo)',
+                        'linkPath' => "/enrollment-formative-itinerary/{$aluno->enturmacaoId}",
+                        'fail' => true
+                    ];
+                }
+
+                $etapasObrigatorias = [26, 27, 28, 31, 32, 33, 36, 37, 38, 71, 74];
+
+                if (
+                    in_array(EstruturaCurricular::ITINERARIO_FORMATIVO, $aluno->estruturaCurricularTurma) &&
+                    in_array(EstruturaCurricular::FORMACAO_GERAL_BASICA, $aluno->estruturaCurricularTurma) &&
+                    in_array($aluno->etapaTurma, $etapasObrigatorias) &&
+                    $aluno->tipoItinerarioNaoPreenchido()
+                ) {
+                    $mensagem[] = [
+                        'text' => "Dados para formular o registro 60 da escola {$nomeEscola} não encontrados. Verificamos que a estrutura curricular da turma {$nomeTurma} é formação geral básica/itinerário formativo e a etapa de ensino é {$aluno->etapaTurmaDescritiva()}, portanto é necessário informar o tipo do itinerario formativo do(a) aluno(a) {$nomeAluno}.",
+                        'path' => '(Escola > Cadastros > Alunos > Visualizar > Itinerário formativo > Campo: Tipo do itinerário formativo)',
+                        'linkPath' => "/enrollment-formative-itinerary/{$aluno->enturmacaoId}",
+                        'fail' => true
+                    ];
+                }
+
+                if ($aluno->tipoItinerarioIntegrado && $aluno->composicaoItinerarioNaoPreenchido()) {
+                    $mensagem[] = [
+                        'text' => "Dados para formular o registro 60 da escola {$nomeEscola} não encontrados. Verificamos que o tipo de itinerário formativo do(a) aluno(a) {$nomeAluno} foi preenchido com a opção de itinerário formativo integrado, portanto é necessário informar a composição do itinerário formativo integrado.",
+                        'path' => '(Escola > Cadastros > Alunos > Visualizar > Itinerário formativo > Campo: Composição do itinerário formativo integrado)',
+                        'linkPath' => "/enrollment-formative-itinerary/{$aluno->enturmacaoId}",
+                        'fail' => true
+                    ];
+                }
+
+                if ($aluno->composicaoItinerarioFormacaoTecnica && empty($aluno->cursoItinerario)) {
+                    $mensagem[] = [
+                        'text' => "Dados para formular o registro 60 da escola {$nomeEscola} não encontrados. Verificamos que a composição do itinerário formativo do(a) aluno(a) {$nomeAluno} foi preenchido com a opção de formação técnica e profissional, portanto é necessário informar o tipo do curso do itinerário de formação técnica e profissional.",
+                        'path' => '(Escola > Cadastros > Alunos > Visualizar > Itinerário formativo > Campo: Tipo do curso do itinerário de formação técnica e profissional)',
+                        'linkPath' => "/enrollment-formative-itinerary/{$aluno->enturmacaoId}",
+                        'fail' => true
+                    ];
+                }
+
+                if ($aluno->composicaoItinerarioFormacaoTecnica && $aluno->itinerarioConcomitante === null) {
+                    $mensagem[] = [
+                        'text' => "Dados para formular o registro 60 da escola {$nomeEscola} não encontrados. Verificamos que a composição do itinerário formativo do(a) aluno(a) {$nomeAluno} foi preenchido com a opção de formação técnica e profissional, portanto é necessário informar se é um itinerário concomitante intercomplementar à matrícula de formação geral básica.",
+                        'path' => '(Escola > Cadastros > Alunos > Visualizar > Itinerário formativo > Campo: Itinerário concomitante intercomplementar à matrícula de formação geral básica)',
+                        'linkPath' => "/enrollment-formative-itinerary/{$aluno->enturmacaoId}",
+                        'fail' => true
+                    ];
+                }
+            }
+
+            if (isArrayEmpty($aluno->tipoAtendimentoMatricula) && $aluno->tipoAtendimentoTurma == TipoAtendimentoTurma::AEE) {
                 $mensagem[] = [
                     'text' => "Dados para formular o registro 60 da escola {$nomeEscola} não encontrados. Verificamos que a turma {$nomeTurma} é de atendimento educacional especializado, portanto é necessário informar qual a tipo de atendimento do(a) aluno(a) {$nomeAluno}.",
                     'path' => '(Escola > Cadastros > Alunos > Visualizar > Tipo do AEE do aluno > Campo: Tipo de Atendimento Educacional Especializado do aluno na turma)',
@@ -1430,7 +1705,7 @@ class EducacensoAnaliseController extends ApiCoreController
                 ];
             }
 
-            if ((!$aluno->veiculoTransporteEscolar )&& $aluno->veiculoTransporteEscolarRequired()) {
+            if (isArrayEmpty($aluno->veiculoTransporteEscolar) && $aluno->veiculoTransporteEscolarRequired()) {
                 $mensagem[] = [
                     'text' => "Dados para formular o registro 60 da escola {$nomeEscola} não encontrados. Verifique se o tipo de veículo do transporte escolar público utilizado pelo(a) aluno(a) {$nomeAluno} foi informado.",
                     'path' => '(Escola > Cadastros > Alunos > Editar > Aba: Dados Pessoais > Campo: Veículo utilizado)',
@@ -1688,7 +1963,7 @@ class EducacensoAnaliseController extends ApiCoreController
             $this->appendResponse($this->analisaEducacensoRegistro90());
         } elseif ($this->isRequestFor('get', 'registro-91')) {
             $this->appendResponse($this->analisaEducacensoRegistro91());
-        }  elseif ($this->isRequestFor('get', 'school-is-active')) {
+        } elseif ($this->isRequestFor('get', 'school-is-active')) {
             $this->appendResponse($this->schoolIsActive());
         } else {
             $this->notImplementedOperationError();

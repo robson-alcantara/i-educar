@@ -2,8 +2,6 @@
 
 use iEducar\Legacy\Model;
 
-require_once 'include/pmieducar/geral.inc.php';
-
 class clsPmieducarEscolaUsuario extends Model
 {
     public $id;
@@ -64,6 +62,7 @@ class clsPmieducarEscolaUsuario extends Model
     {
         if (is_numeric($this->id)) {
             $db = new clsBanco();
+            $gruda = '';
             $set = '';
 
             if (is_numeric($this->ref_cod_usuario)) {

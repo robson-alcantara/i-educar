@@ -88,6 +88,7 @@ class clsCadastroEscolaridade extends Model
         if (is_numeric($this->idesco)) {
             $db = new clsBanco();
             $set = '';
+            $gruda = '';
 
             if (is_string($this->descricao)) {
                 $descricao = $db->escapeString($this->descricao);
@@ -206,9 +207,11 @@ class clsCadastroEscolaridade extends Model
      *  vai retorna uma lista de idpes que possuem vínculo
      *
      * @return array|bool
+     *
      * @throws Exception
      */
-    public function findUsages() {
+    public function findUsages()
+    {
         if (! is_numeric($this->idesco)) {
             return false;
         }

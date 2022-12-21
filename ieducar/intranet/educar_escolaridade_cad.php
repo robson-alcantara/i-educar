@@ -1,25 +1,8 @@
 <?php
 
-require_once 'include/clsBase.inc.php';
-require_once 'include/clsCadastro.inc.php';
-require_once 'include/clsBanco.inc.php';
-require_once 'include/Geral.inc.php';
-require_once 'include/pmieducar/geral.inc.php';
-require_once 'lib/Portabilis/String/Utils.php';
-
 use iEducar\Support\View\SelectOptions;
 
-class clsIndexBase extends clsBase
-{
-    public function Formular()
-    {
-        $this->SetTitulo($this->_instituicao . ' Servidores - Escolaridade');
-        $this->processoAp = '632';
-    }
-}
-
-class indice extends clsCadastro
-{
+return new class extends clsCadastro {
     /**
      * Referência a usuário da sessão
      *
@@ -92,7 +75,7 @@ class indice extends clsCadastro
         $this->campoOculto('idesco', $this->idesco);
 
         // Outros campos
-        $this->campoTexto('descricao', 'Descri&ccedil;&atilde;o', $this->descricao, 30, 255, true);
+        $this->campoTexto('descricao', 'Descrição', $this->descricao, 30, 255, true);
 
         $options = ['label' => 'Escolaridade educacenso', 'resources' => SelectOptions::escolaridades(), 'value' => $this->escolaridade];
         $this->inputsHelper()->select('escolaridade', $options);
@@ -115,7 +98,7 @@ class indice extends clsCadastro
             $this->simpleRedirect('educar_escolaridade_lst.php');
         }
 
-        $this->mensagem = 'Cadastro n&atilde;o realizado.<br>';
+        $this->mensagem = 'Cadastro não realizado.<br>';
 
         return false;
     }
@@ -140,6 +123,7 @@ class indice extends clsCadastro
 
         if ($obj->findUsages()) {
             $this->mensagem = 'Exclusão não realizada - Ainda existe vínculos.<br>';
+
             return false;
         }
 
@@ -153,16 +137,10 @@ class indice extends clsCadastro
 
         return false;
     }
-}
 
-// Instancia objeto de página
-$pagina = new clsIndexBase();
-
-// Instancia objeto de conteúdo
-$miolo = new indice();
-
-// Atribui o conteúdo à página
-$pagina->addForm($miolo);
-
-// Gera o código HTML
-$pagina->MakeAll();
+    public function Formular()
+    {
+        $this->title = 'Servidores - Escolaridade';
+        $this->processoAp = '632';
+    }
+};

@@ -2,8 +2,6 @@
 
 use iEducar\Legacy\Model;
 
-require_once 'include/pmieducar/geral.inc.php';
-
 class clsPmieducarTelefone extends Model
 {
     public $ref_cod_pessoa_educ;
@@ -20,7 +18,7 @@ class clsPmieducarTelefone extends Model
         $this->_campos_lista = $this->_todos_campos = 'ref_cod_pessoa_educ, tipo, ddd, fone';
 
         if (is_numeric($ref_cod_pessoa_educ)) {
-                    $this->ref_cod_pessoa_educ = $ref_cod_pessoa_educ;
+            $this->ref_cod_pessoa_educ = $ref_cod_pessoa_educ;
         }
 
         if (is_numeric($tipo)) {
@@ -86,6 +84,7 @@ class clsPmieducarTelefone extends Model
     {
         if (is_numeric($this->ref_cod_pessoa_educ) && is_numeric($this->tipo)) {
             $db = new clsBanco();
+            $gruda = '';
             $set = '';
 
             if (is_numeric($this->ddd)) {

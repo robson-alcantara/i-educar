@@ -23,6 +23,7 @@ class ImportService extends GeneralImportService
      * Retorna o nome da escola a partir da string do arquivo de importação
      *
      * @param $school
+     *
      * @return string
      */
     public function getSchoolNameByFile($school)
@@ -36,6 +37,7 @@ class ImportService extends GeneralImportService
      * Retorna a classe responsável por importar o registro da linha
      *
      * @param $lineId
+     *
      * @return RegistroImportInterface
      */
     public function getRegistroById($lineId)
@@ -54,7 +56,7 @@ class ImportService extends GeneralImportService
             return;
         }
 
-        return new $arrayRegistros[$lineId];
+        return new $arrayRegistros[$lineId]();
     }
 
     public function adaptData()

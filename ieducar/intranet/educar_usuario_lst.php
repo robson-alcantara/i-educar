@@ -3,22 +3,7 @@
 use App\User;
 use Illuminate\Support\Facades\Auth;
 
-require_once 'include/clsBase.inc.php';
-require_once 'include/clsListagem.inc.php';
-require_once 'include/clsBanco.inc.php';
-require_once 'include/pmieducar/geral.inc.php';
-
-class clsIndex extends clsBase
-{
-    public function Formular()
-    {
-        $this->SetTitulo("{$this->_instituicao} Usu&aacute;rios!");
-        $this->processoAp = '555';
-    }
-}
-
-class indice extends clsListagem
-{
+return new class extends clsListagem {
     public function Gerar()
     {
         $this->titulo = 'Usuários';
@@ -27,12 +12,12 @@ class indice extends clsListagem
             $this->$var = ($val === '') ? null : $val;
         }
 
-        $this->addCabecalhos(['Nome', 'Matrícula', 'Matrícula Interna', 'Status', 'Tipo usu&aacute;rio', 'N&iacute;vel de Acesso']);
+        $this->addCabecalhos(['Nome', 'Matrícula', 'Matrícula Interna', 'Status', 'Tipo usuário', 'Nível de Acesso']);
 
         // Filtros de Busca
         $this->campoTexto('nm_pessoa', 'Nome', $this->nm_pessoa, 42, 255);
-        $this->campoTexto('matricula', 'Matr&iacute;cula', $this->matricula, 20, 15);
-        $this->campoTexto('matricula_interna', 'Matr&iacute;cula Interna', $this->matricula_interna, 20, 30);
+        $this->campoTexto('matricula', 'Matrícula', $this->matricula, 20, 15);
+        $this->campoTexto('matricula_interna', 'Matrícula Interna', $this->matricula_interna, 20, 30);
 
         $opcoes = ['' => 'Selecione'];
 
@@ -45,7 +30,7 @@ class indice extends clsListagem
             }
         }
 
-        $this->campoLista('ref_cod_tipo_usuario', 'Tipo Usu&aacute;rio', $opcoes, $this->ref_cod_tipo_usuario, null, null, null, null, null, false);
+        $this->campoLista('ref_cod_tipo_usuario', 'Tipo Usuário', $opcoes, $this->ref_cod_tipo_usuario, null, null, null, null, null, false);
 
         $obj_usuario = new clsPmieducarUsuario($this->pessoa_logada);
         $detalhe = $obj_usuario->detalhe();
@@ -66,7 +51,7 @@ class indice extends clsListagem
         } elseif ($tipo_usuario['nivel'] == 4) {
             $opcoes = ['' => 'Selecione', '8' => 'Biblioteca'];
         }
-        $this->campoLista('ref_cod_nivel_usuario', 'N&iacute;vel de Acesso', $opcoes, $this->ref_cod_nivel_usuario, null, null, null, null, null, false);
+        $this->campoLista('ref_cod_nivel_usuario', 'Nível de Acesso', $opcoes, $this->ref_cod_nivel_usuario, null, null, null, null, null, false);
 
         $this->inputsHelper()->dynamic('instituicao', ['required' => false, 'show-select' => true, 'value' => $this->ref_cod_instituicao]);
         $this->inputsHelper()->dynamic('escola', ['required' => false, 'show-select' => true, 'value' => $this->ref_cod_escola]);
@@ -104,9 +89,9 @@ class indice extends clsListagem
         $obj_func->setOrderby('(nome) ASC');
         $obj_func->setLimite($limite, $iniciolimit);
         $lst_func = $obj_func->listaFuncionarioUsuario(
-            $_GET['matricula'],
-            $_GET['nm_pessoa'],
-            $_GET['matricula_interna'],
+            pg_escape_string($_GET['matricula']),
+            pg_escape_string($_GET['nm_pessoa']),
+            pg_escape_string($_GET['matricula_interna']),
             $this->ref_cod_escola,
             $this->ref_cod_instituicao,
             $this->ref_cod_tipo_usuario,
@@ -156,9 +141,10 @@ class indice extends clsListagem
             url('intranet/educar_configuracoes_index.php') => 'Configurações',
         ]);
     }
-}
 
-$pagina = new clsIndex();
-$miolo = new indice();
-$pagina->addForm($miolo);
-$pagina->MakeAll();
+    public function Formular()
+    {
+        $this->title = 'Usuários';
+        $this->processoAp = '555';
+    }
+};

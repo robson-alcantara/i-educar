@@ -2,11 +2,11 @@
 
 namespace App\Support\View;
 
+use App\Setting;
 use App\Support\View\Settings\Inputs\BooleanInput;
 use App\Support\View\Settings\Inputs\FloatInput;
 use App\Support\View\Settings\Inputs\IntegerInput;
 use App\Support\View\Settings\Inputs\StringInput;
-use App\Setting;
 
 class SettingView
 {
@@ -18,12 +18,12 @@ class SettingView
     private function getInput($type)
     {
         $types = [
-            Setting::TYPE_STRING => (new StringInput),
-            Setting::TYPE_INTEGER => (new IntegerInput),
-            Setting::TYPE_FLOAT => (new FloatInput),
-            Setting::TYPE_BOOLEAN => (new BooleanInput),
+            Setting::TYPE_STRING => (new StringInput()),
+            Setting::TYPE_INTEGER => (new IntegerInput()),
+            Setting::TYPE_FLOAT => (new FloatInput()),
+            Setting::TYPE_BOOLEAN => (new BooleanInput()),
         ];
 
-        return $types[$type] ?? (new StringInput);
+        return $types[$type] ?? (new StringInput());
     }
 }

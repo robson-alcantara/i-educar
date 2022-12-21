@@ -2,8 +2,6 @@
 
 use iEducar\Legacy\Model;
 
-require_once 'include/pmieducar/geral.inc.php';
-
 class clsPmieducarTipoEnsino extends Model
 {
     public $cod_tipo_ensino;
@@ -42,14 +40,14 @@ class clsPmieducarTipoEnsino extends Model
                                                        atividade_complementar';
 
         if (is_numeric($ref_usuario_exc)) {
-                    $this->ref_usuario_exc = $ref_usuario_exc;
+            $this->ref_usuario_exc = $ref_usuario_exc;
         }
         if (is_numeric($ref_usuario_cad)) {
-                    $this->ref_usuario_cad = $ref_usuario_cad;
+            $this->ref_usuario_cad = $ref_usuario_cad;
         }
 
         if (is_numeric($ref_cod_instituicao)) {
-                    $this->ref_cod_instituicao = $ref_cod_instituicao;
+            $this->ref_cod_instituicao = $ref_cod_instituicao;
         }
 
         if (is_numeric($cod_tipo_ensino)) {
@@ -134,6 +132,7 @@ class clsPmieducarTipoEnsino extends Model
     {
         if (is_numeric($this->cod_tipo_ensino) && is_numeric($this->ref_usuario_exc)) {
             $db = new clsBanco();
+            $gruda = '';
             $set = '';
 
             if (is_numeric($this->ref_usuario_exc)) {
@@ -208,22 +207,6 @@ class clsPmieducarTipoEnsino extends Model
         if (is_string($str_nm_tipo)) {
             $nm_tipo = $db->escapeString($str_nm_tipo);
             $filtros .= "{$whereAnd} nm_tipo LIKE '%{$nm_tipo}%'";
-            $whereAnd = ' AND ';
-        }
-        if (is_string($date_data_cadastro_ini)) {
-            $filtros .= "{$whereAnd} data_cadastro >= '{$date_data_cadastro_ini}'";
-            $whereAnd = ' AND ';
-        }
-        if (is_string($date_data_cadastro_fim)) {
-            $filtros .= "{$whereAnd} data_cadastro <= '{$date_data_cadastro_fim}'";
-            $whereAnd = ' AND ';
-        }
-        if (is_string($date_data_exclusao_ini)) {
-            $filtros .= "{$whereAnd} data_exclusao >= '{$date_data_exclusao_ini}'";
-            $whereAnd = ' AND ';
-        }
-        if (is_string($date_data_exclusao_fim)) {
-            $filtros .= "{$whereAnd} data_exclusao <= '{$date_data_exclusao_fim}'";
             $whereAnd = ' AND ';
         }
         if (is_numeric($int_ativo)) {

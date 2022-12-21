@@ -4,17 +4,18 @@ namespace App\Http\Controllers;
 
 use App\Models\Notification;
 use App\Process;
+use App\Services\NotificationUrlPresigner;
 use App\User;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\View\View;
 use iEducar\Modules\Notifications\Status;
+use Illuminate\Http\Request;
+use Illuminate\View\View;
 
 class NotificationController extends Controller
 {
     /**
      * @param Request $request
-     * @param User $user
+     * @param User    $user
+     *
      * @return View
      */
     public function index(Request $request, User $user)
@@ -65,15 +66,21 @@ class NotificationController extends Controller
             ->update(['read_at' => now()]);
     }
 
-    public function getByLoggedUser(User $user)
+    public function getByLoggedUser(User $user, NotificationUrlPresigner $presigner)
     {
         $limit = $this->getLimit($user);
 
-        return Notification::where('user_id', $user->getKey())
+        return Notification::query()
+            ->where('user_id', $user->getKey())
             ->limit($limit)
             ->orderBy('read_at', 'desc')
             ->orderBy('created_at', 'desc')
-            ->get();
+            ->get()
+            ->map(function ($notification) use ($presigner) {
+                $notification->link = $presigner->getNotificationUrl($notification);
+
+                return $notification;
+            });
     }
 
     public function getNotReadCount(User $user)

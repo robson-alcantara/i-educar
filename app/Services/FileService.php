@@ -35,6 +35,7 @@ class FileService
     public function saveFile($url, $size, $originalName, $extension, $typeFileRelation, $relationId)
     {
         DB::beginTransaction();
+
         try {
             $file = File::create([
                 'url' => $url,
@@ -42,7 +43,7 @@ class FileService
                 'original_name' => $originalName,
                 'extension' => $extension,
             ]);
-    
+
             FileRelation::create([
                 'type' => $typeFileRelation,
                 'relation_id' => $relationId,
@@ -69,6 +70,7 @@ class FileService
     {
         foreach ($deletedFiles as $deletedFile) {
             DB::beginTransaction();
+
             try {
                 $this->deleteFilesFromStorage($deletedFile);
                 $filesRelation = FileRelation::query()
@@ -78,7 +80,7 @@ class FileService
                 FileRelation::destroy($filesRelation);
                 File::destroy($deletedFile);
                 DB::commit();
-            } catch(Throwable $e) {
+            } catch (Throwable $e) {
                 DB::rollBack();
             }
         }
@@ -94,9 +96,11 @@ class FileService
         switch (config('filesystems.default')) {
             case 'local':
                 $url = config('legacy.app.database.dbname') . '/' . implode('/', array_slice(explode('/', $url), 5));
+
                 break;
             case 's3':
                 $url = implode('/', array_slice(explode('/', $url), 3));
+
                 break;
         }
 

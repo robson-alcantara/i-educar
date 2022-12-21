@@ -1,29 +1,14 @@
 <?php
 
-require_once('include/clsBase.inc.php');
-require_once('include/clsListagem.inc.php');
-require_once('include/clsBanco.inc.php');
-
-class clsIndex extends clsBase
-{
-    public function Formular()
-    {
-        $this->SetTitulo("{$this->_instituicao} Vínculo Funcionários!");
-        $this->processoAp = '190';
-    }
-}
-
-class indice extends clsListagem
-{
+return new class extends clsListagem {
     public function Gerar()
     {
         $this->titulo = 'Vínculos';
 
-        $nome_ = @$_GET['nome_'];
+        $nome_ = $_GET['nome_'] ?? null;
 
         $this->addCabecalhos(['Nome']);
-
-        $this->campoTexto('nome_', 'Nome', $nome_, '50', '255', true);
+        $this->campoTexto('nome_', 'Nome', $nome_, '50', '255');
 
         $db = new clsBanco();
         $sql  = 'SELECT cod_funcionario_vinculo, nm_vinculo FROM portal.funcionario_vinculo';
@@ -33,7 +18,6 @@ class indice extends clsListagem
         if (!empty($nome_)) {
             $name = $db->escapeString($nome_);
             $where .= $where_and." nm_vinculo LIKE '%{$name}%' ";
-            $where_and = ' AND';
         }
 
         if ($where) {
@@ -65,13 +49,12 @@ class indice extends clsListagem
         $this->acao = 'go("funcionario_vinculo_cad.php")';
         $this->nome_acao = 'Novo';
 
-        $this->breadcrumb('Listagem de v&iacute;nculos');
+        $this->breadcrumb('Listagem de vínculos');
     }
-}
 
-$pagina = new clsIndex();
-
-$miolo = new indice();
-$pagina->addForm($miolo);
-
-$pagina->MakeAll();
+    public function Formular()
+    {
+        $this->title = 'Vínculo Funcionários!';
+        $this->processoAp = '190';
+    }
+};

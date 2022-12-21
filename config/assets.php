@@ -14,7 +14,7 @@ return [
     |
     */
 
-    'version' => '0.0.74',
+    'version' => '0.1.11',
 
     /*
     |--------------------------------------------------------------------------
@@ -31,6 +31,16 @@ return [
     |
     */
 
-    'secure' => null,
+    'secure' => env('ASSETS_SECURE', null),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Auto Versioning
+    |--------------------------------------------------------------------------
+    |
+    | Automatically generate the version number on a per file basis using the
+    | config version numbers on external files
+    |
+    */
+    'auto' => false
 ];

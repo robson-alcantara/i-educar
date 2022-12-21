@@ -1,9 +1,6 @@
 <?php
 
-require_once 'CoreExt/Entity.php';
-require_once 'App/Model/IedFinder.php';
-
-class AreaConhecimento_Model_Area extends CoreExt_Entity
+class AreaConhecimento_Model_Area extends CoreExt_Entity implements \Stringable
 {
     protected $_data = [
         'instituicao' => null,
@@ -25,7 +22,7 @@ class AreaConhecimento_Model_Area extends CoreExt_Entity
         ];
     }
 
-    public function __toString()
+    public function __toString(): string
     {
         return $this->nome;
     }

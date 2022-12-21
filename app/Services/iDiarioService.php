@@ -31,7 +31,7 @@ class iDiarioService
 
     /**
      * @param LegacyInstitution $institution
-     * @param Client $http
+     * @param Client            $http
      *
      * @return void
      */
@@ -63,7 +63,7 @@ class iDiarioService
                 'year' => $year,
                 'step_number' => $step
             ]);
-            $body = trim((string)$response->getBody());
+            $body = trim((string) $response->getBody());
 
             if ($body === 'true') {
                 return true;
@@ -89,7 +89,7 @@ class iDiarioService
                 'year' => $year,
                 'step_number' => $step
             ]);
-            $body = trim((string)$response->getBody());
+            $body = trim((string) $response->getBody());
 
             if ($body === 'true') {
                 return true;
@@ -105,7 +105,7 @@ class iDiarioService
     {
         try {
             $response = $this->get('/api/v2/teacher_classrooms/has_activities', ['teacher_id' => $teacherId, 'classroom_id' => $classroomId]);
-            $body = trim((string)$response->getBody());
+            $body = trim((string) $response->getBody());
 
             if ($body === 'true') {
                 return true;
@@ -123,9 +123,10 @@ class iDiarioService
             'classrooms' => implode(',', $classroomId),
             'discipline' => $disciplineId
         ];
+
         try {
             $response = $this->get('/api/v2/discipline_activity', $data);
-            $body = trim((string)$response->getBody());
+            $body = trim((string) $response->getBody());
 
             if ($body === 'true') {
                 return true;
@@ -139,7 +140,7 @@ class iDiarioService
 
     /**
      * @param string $path
-     * @param array $query
+     * @param array  $query
      *
      * @return mixed
      */
@@ -157,5 +158,29 @@ class iDiarioService
     {
         return !empty(config('legacy.config.url_novo_educacao'))
             && !empty(config('legacy.config.token_novo_educacao'));
+    }
+
+    /**
+     * @param int       $studentId
+     * @param \DateTime $exitDate
+     * @doc https://github.com/portabilis/novo-educacao/pull/3626#issue-577687036
+     *
+     * @return array
+     */
+    public function getStudentActivity(int $studentId, \DateTime $exitDate): array
+    {
+        $data = [
+            'student_id' => $studentId,
+            'exit_date' => $exitDate->format('Y-m-d')
+        ];
+
+        try {
+            $response = $this->get('/api/v2/student_activity', $data);
+            $body = (array) json_decode($response->getBody()->getContents());
+        } catch (Exception $e) {
+            throw new RuntimeException('Ocorreu um erro de integração com o i-Diário: '.$e->getMessage());
+        }
+
+        return $body;
     }
 }

@@ -1,9 +1,7 @@
 <?php
 
-use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
-
-require_once 'include/clsBanco.inc.php';
 
 class clsPessoa_
 {
@@ -18,7 +16,6 @@ class clsPessoa_
     public $situacao;
     public $origem_gravacao;
     public $email;
-    public $pessoa_logada;
     public $banco = 'gestao_homolog';
     public $schema_cadastro = 'cadastro';
     public $tabela_pessoa = 'pessoa';
@@ -27,22 +24,18 @@ class clsPessoa_
 
     public function __construct($int_idpes = false, $str_nome = false, $int_idpes_cad = false, $str_url = false, $int_tipo = false, $int_idpes_rev = false, $str_data_rev = false, $str_email = false)
     {
-        $this->pessoa_logada = Session::get('id_pessoa');
-
         $this->idpes = $int_idpes;
         $this->nome = $str_nome;
-        $this->idpes_cad = $int_idpes_cad ? $int_idpes_cad : Session::get('id_pessoa');
+        $this->idpes_cad = $int_idpes_cad ?: Auth::id();
         $this->url = $str_url;
         $this->tipo = $int_tipo;
-        $this->idpes_rev = is_numeric($int_idpes_rev) ? $int_idpes_rev : Session::get('id_pessoa');
+        $this->idpes_rev = is_numeric($int_idpes_rev) ? $int_idpes_rev : Auth::id();
         $this->data_rev = $str_data_rev;
         $this->email = $str_email;
     }
 
     public function cadastra()
     {
-        $db = new clsBanco();
-
         if ($this->nome && $this->tipo) {
             $this->nome = $this->cleanUpName($this->nome);
             $campos = '';
@@ -90,8 +83,6 @@ class clsPessoa_
             }
             if ($this->nome || $this->nome === '') {
                 $this->nome = $this->cleanUpName($this->nome);
-                $this->nome = str_replace('\'', '\'\'', $this->nome);
-
                 $slug = Str::lower(Str::slug($this->nome, ' '));
 
                 $set .= "$gruda nome = '$this->nome', slug = '{$slug}' ";
@@ -167,13 +158,8 @@ class clsPessoa_
         }
 
         if (is_string($str_data_cad_ini)) {
-            if (!$str_data_edicao_fim) {
-                $where .= "{$whereAnd}data_cad >= '$str_data_cad_ini 00:00:00' AND data_cad <= '$str_data_cad_ini 23:59:59'";
-                $whereAnd = ' AND ';
-            } else {
-                $where .= "{$whereAnd}data_cad >= '$str_data_cad_ini'";
-                $whereAnd = ' AND ';
-            }
+            $where .= "{$whereAnd}data_cad >= '$str_data_cad_ini'";
+            $whereAnd = ' AND ';
         }
 
         if (is_string($str_data_cad_fim)) {

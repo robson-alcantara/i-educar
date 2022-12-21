@@ -4,17 +4,13 @@ use App\Models\LegacyDiscipline;
 use App\Models\LegacyDisciplineAcademicYear;
 use App\Models\LegacySchool;
 use App\Models\LegacySchoolClass;
-use App\Models\LegacySchoolingDegree;
 use App\Models\LegacySchoolClassStage;
 use App\Models\LegacySchoolStage;
-use iEducar\Modules\Enrollments\Exceptions\StudentNotEnrolledInSchoolClass;
 use iEducar\Modules\AcademicYear\Exceptions\DisciplineNotLinkedToRegistrationException;
+use iEducar\Modules\Enrollments\Exceptions\StudentNotEnrolledInSchoolClass;
 use iEducar\Modules\EvaluationRules\Exceptions\EvaluationRuleNotDefinedInLevel;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
-
-require_once 'CoreExt/Entity.php';
-require_once 'App/Model/Exception.php';
 
 class App_Model_IedFinder extends CoreExt_Entity
 {
@@ -89,7 +85,7 @@ class App_Model_IedFinder extends CoreExt_Entity
         $escolas = [];
 
         foreach ($_escolas->lista(null, null, null, $instituicaoId) as $escola) {
-            $escolas[$escola['cod_escola']] = $escola['nome'];
+            $escolas[$escola['cod_escola']] = mb_strtoupper($escola['nome']);
         }
 
         return $escolas;
@@ -105,7 +101,9 @@ class App_Model_IedFinder extends CoreExt_Entity
      */
     public static function getEscolasByUser($instituicaoId)
     {
-        $query = LegacySchool::query()->whereHas('person')->where('ref_cod_instituicao', $instituicaoId);
+        $query = LegacySchool::query()
+            ->where('ativo', 1)
+            ->whereHas('person')->where('ref_cod_instituicao', $instituicaoId);
 
         if (Auth::user()->isSchooling()) {
             $schools = Auth::user()->schools->pluck('cod_escola')->all();
@@ -133,7 +131,7 @@ class App_Model_IedFinder extends CoreExt_Entity
         $curso->cod_curso = $id;
         $curso = $curso->detalhe();
 
-        return $curso['nm_curso'];
+        return empty($curso['descricao']) ? $curso['nm_curso'] : "{$curso['nm_curso']} ({$curso['descricao']})";
     }
 
     /**
@@ -245,13 +243,9 @@ class App_Model_IedFinder extends CoreExt_Entity
      */
     public static function getSeries($instituicaoId = null, $escolaId = null, $cursoId = null, $ano = null)
     {
-        $series = self::addClassToStorage(
-            'clsPmieducarSerie',
-            null,
-            'include/pmieducar/clsPmieducarSerie.inc.php'
-        );
-
-        $series->setOrderby(' nm_serie ASC, ref_cod_curso ASC, cod_serie ASC, etapa_curso ASC');
+        $orderBy = ' nm_serie ASC, ref_cod_curso ASC, cod_serie ASC, etapa_curso ASC';
+        $series = app(clsPmieducarSerie::class);
+        $series->setOrderby($orderBy);
 
         $series = $series->lista(
             null,
@@ -276,13 +270,13 @@ class App_Model_IedFinder extends CoreExt_Entity
             $ano
         );
 
-        $_series = [];
-
+        $result = [];
         foreach ($series as $serie) {
-            $_series[$serie['cod_serie']] = mb_strtoupper($serie['nm_serie'], 'UTF-8');
+            $nomeSerie = empty($serie['descricao']) ? $serie['nm_serie'] : "{$serie['nm_serie']} ({$serie['descricao']})";
+            $result[$serie['cod_serie']] = mb_strtoupper($nomeSerie, 'UTF-8');
         }
 
-        return $_series;
+        return $result;
     }
 
     /**
@@ -570,7 +564,6 @@ class App_Model_IedFinder extends CoreExt_Entity
         $ano = null
     ) {
         if (is_null($mapper)) {
-            require_once 'ComponenteCurricular/Model/TurmaDataMapper.php';
             $mapper = new ComponenteCurricular_Model_TurmaDataMapper();
         }
 
@@ -600,7 +593,7 @@ class App_Model_IedFinder extends CoreExt_Entity
                 $ano
             );
 
-            foreach($componentesTurma as $key => $componente) {
+            foreach ($componentesTurma as $key => $componente) {
                 if ($componente->id == $disciplinaDispensada) {
                     unset($componentesTurma[$key]);
                 }
@@ -685,6 +678,7 @@ class App_Model_IedFinder extends CoreExt_Entity
                     return $componente->cargaHoraria;
                 }
             }
+
             return null;
         };
 
@@ -862,7 +856,6 @@ class App_Model_IedFinder extends CoreExt_Entity
         $possuiDeficiencia = self::verificaSePossuiDeficiencia($matricula['ref_cod_aluno']);
 
         if (is_null($mapper)) {
-            require_once 'RegraAvaliacao/Model/RegraDataMapper.php';
             $mapper = new RegraAvaliacao_Model_RegraDataMapper();
         }
 
@@ -905,7 +898,6 @@ class App_Model_IedFinder extends CoreExt_Entity
         $escola = self::getEscola($turma['ref_ref_cod_escola']);
 
         if (is_null($mapper)) {
-            require_once 'RegraAvaliacao/Model/RegraDataMapper.php';
             $mapper = new RegraAvaliacao_Model_RegraDataMapper();
         }
 

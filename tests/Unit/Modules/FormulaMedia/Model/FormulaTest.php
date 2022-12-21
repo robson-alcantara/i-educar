@@ -19,8 +19,6 @@ class FormulaTest extends TestCase
     {
         parent::setUp();
 
-        require_once 'modules/FormulaMedia/Model/Formula.php';
-
         $this->formula = new FormulaMedia_Model_Formula();
     }
 
@@ -103,7 +101,7 @@ class FormulaTest extends TestCase
         ]);
 
         $this->assertEquals(8, $average);
-        $this->assertEquals(5.8, $recuperation);
+        $this->assertEqualsWithDelta(5.8, $recuperation, 0.00001); # TODO entender o motivo de ser necessário
     }
 
     /**

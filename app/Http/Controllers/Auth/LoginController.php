@@ -22,6 +22,9 @@ class LoginController extends Controller
 
     use AuthenticatesUsers;
 
+    protected int $maxAttempts = 2;
+    protected int $decayMinutes = 1;
+
     /**
      * Where to redirect users after login.
      *
@@ -57,16 +60,17 @@ class LoginController extends Controller
      * Validate the user login request.
      *
      * @param Request $request
-     * @return void
      *
      * @throws \Illuminate\Validation\ValidationException
+     *
+     * @return void
      */
     public function validateLogin(Request $request)
     {
         $request->validate([
             $this->username() => 'required|string',
             'password' => 'required|string',
-            'grecaptcha' => [new ReCaptchaV3],
+            'grecaptcha' => [new ReCaptchaV3()],
         ]);
     }
 }

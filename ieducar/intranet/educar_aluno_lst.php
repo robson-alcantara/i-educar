@@ -1,23 +1,6 @@
 <?php
 
-require_once 'include/clsBase.inc.php';
-require_once 'include/clsListagem.inc.php';
-require_once 'include/clsBanco.inc.php';
-require_once 'include/pmieducar/geral.inc.php';
-require_once 'Educacenso/Model/AlunoDataMapper.php';
-require_once 'Portabilis/Utils/CustomLabel.php';
-
-class clsIndexBase extends clsBase
-{
-    public function Formular()
-    {
-        $this->SetTitulo("{$this->_instituicao} i-Educar - Aluno");
-        $this->processoAp = '578';
-    }
-}
-
-class indice extends clsListagem
-{
+return new class extends clsListagem {
     /**
      * Titulo no topo da pagina
      *
@@ -39,9 +22,9 @@ class indice extends clsListagem
      */
     public $offset;
 
+    public $cod_inep;
+    public $aluno_estado_id;
     public $cod_aluno;
-    public $ref_idpes_responsavel;
-    public $ref_cod_aluno_beneficio;
     public $ref_cod_religiao;
     public $ref_usuario_exc;
     public $ref_usuario_cad;
@@ -53,7 +36,6 @@ class indice extends clsListagem
     public $matriculado;
     public $inativado;
     public $nome_responsavel;
-    public $cpf_responsavel;
     public $nome_pai;
     public $nome_mae;
     public $data_nascimento;
@@ -64,6 +46,7 @@ class indice extends clsListagem
     public $ref_cod_serie;
     public $cpf_aluno;
     public $rg_aluno;
+    public $situacao_matricula_id;
 
     public function Gerar()
     {
@@ -96,6 +79,7 @@ class indice extends clsListagem
         $this->inputsHelper()->dynamic('instituicao', ['required' => false, 'value' => $this->ref_cod_instituicao]);
         $this->inputsHelper()->dynamic('escolaSemFiltroPorUsuario', ['required' => false, 'value' => $this->ref_cod_escola]);
         $this->inputsHelper()->dynamic(['curso', 'serie'], ['required' => false]);
+        $this->inputsHelper()->dynamic(['situacaoMatricula'], ['required' => false]);
 
         $obj_permissoes = new clsPermissoes();
         $cod_escola = $obj_permissoes->getEscola($this->pessoa_logada);
@@ -132,51 +116,25 @@ class indice extends clsListagem
         $aluno = new clsPmieducarAluno();
         $aluno->setLimite($this->limite, $this->offset);
 
-        $alunos = $aluno->lista2(
-            $this->cod_aluno,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            1,
-            null,
-            $this->nome_aluno,
-            null,
-            idFederal2int($this->cpf_responsavel),
-            null,
-            null,
-            null,
-            $ref_cod_escola,
-            null,
-            $this->data_nascimento,
-            $this->nome_pai,
-            $this->nome_mae,
-            $this->nome_responsavel,
-            $this->cod_inep,
-            $this->aluno_estado_id,
-            $this->ano,
-            $this->ref_cod_instituicao,
-            $this->ref_cod_escola,
-            $this->ref_cod_curso,
-            $this->ref_cod_serie,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            idFederal2int($this->cpf_aluno),
-            idFederal2int($this->rg_aluno)
+        $alunos = $aluno->telaDeListagemDeAlunos(
+            int_cod_aluno: $this->cod_aluno,
+            int_ativo: 1,
+            str_nome_aluno: $this->nome_aluno,
+            int_ref_cod_escola: $ref_cod_escola,
+            data_nascimento: $this->data_nascimento,
+            str_nm_pai2: $this->nome_pai,
+            str_nm_mae2: $this->nome_mae,
+            str_nm_responsavel2: $this->nome_responsavel,
+            cod_inep: $this->cod_inep,
+            aluno_estado_id: $this->aluno_estado_id,
+            ano: $this->ano,
+            ref_cod_instituicao: $this->ref_cod_instituicao,
+            ref_cod_escola: $this->ref_cod_escola,
+            ref_cod_curso: $this->ref_cod_curso,
+            ref_cod_serie: $this->ref_cod_serie,
+            int_cpf_aluno: idFederal2int($this->cpf_aluno),
+            int_rg_aluno: idFederal2int($this->rg_aluno),
+            situacao_matricula_id: $this->situacao_matricula_id
         );
 
         $total = $aluno->_total;
@@ -192,7 +150,7 @@ class indice extends clsListagem
             // responsavel
             $aluno->cod_aluno = $registro['cod_aluno'];
             $responsavel = $aluno->getResponsavelAluno();
-            $nomeResponsavel = strtoupper($responsavel['nome_responsavel']);
+            $nomeResponsavel = mb_strtoupper($responsavel['nome_responsavel']);
 
             if (!$configuracoes['mostrar_codigo_inep_aluno']) {
                 $linhas = [
@@ -222,10 +180,6 @@ class indice extends clsListagem
         $usuarioTemPermissaoCadastro = $obj_permissoes->permissao_cadastra(578, $this->pessoa_logada, 7);
         $usuarioPodeCadastrar = $usuarioTemPermissaoCadastro && $bloquearCadastroAluno == false;
 
-        // Verifica se o usuário tem permissão para cadastrar um aluno.
-        // O sistema irá validar o cadastro de permissões e o parâmetro
-        // "bloquear_cadastro_aluno" da instituição.
-
         if ($usuarioPodeCadastrar) {
             $this->acao = 'go("/module/Cadastro/aluno")';
             $this->nome_acao = 'Novo';
@@ -243,13 +197,10 @@ class indice extends clsListagem
 
         $this->breadcrumb('Alunos', ['/intranet/educar_index.php' => 'Escola']);
     }
-}
 
-// cria uma extensao da classe base
-$pagina = new clsIndexBase();
-// cria o conteudo
-$miolo = new indice();
-// adiciona o conteudo na clsBase
-$pagina->addForm($miolo);
-// gera o html
-$pagina->MakeAll();
+    public function Formular()
+    {
+        $this->title = 'Aluno';
+        $this->processoAp = '578';
+    }
+};

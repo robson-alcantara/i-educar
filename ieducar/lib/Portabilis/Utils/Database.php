@@ -1,7 +1,5 @@
 <?php
 
-require_once 'lib/Portabilis/Array/Utils.php';
-
 class Portabilis_Utils_Database
 {
     public static $_db;
@@ -28,13 +26,14 @@ class Portabilis_Utils_Database
             'params' => [],
             'show_errors' => true,
             'return_only' => '',
-            'messenger' => null
+            'messenger' => null,
+            'fetchMode' => PDO::FETCH_BOTH,
         ];
 
         $options = self::mergeOptions($options, $defaultOptions);
 
         try {
-            if (self::db()->execPreparedQuery($sql, $options['params']) != false) {
+            if (self::db()->setFetchMode($options['fetchMode'])->execPreparedQuery($sql, $options['params']) !== false) {
                 while (self::db()->ProximoRegistro()) {
                     $result[] = self::db()->Tupla();
                 }
@@ -97,6 +96,6 @@ class Portabilis_Utils_Database
 
     public static function pgArrayToArray($value): array
     {
-        return !empty($value) ? explode(',', str_replace(array('{', "}"), '', $value)) : [];
+        return !empty($value) ? explode(',', str_replace(['{', '}'], '', $value)) : [];
     }
 }

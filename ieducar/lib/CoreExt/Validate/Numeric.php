@@ -1,7 +1,5 @@
 <?php
 
-require_once 'CoreExt/Validate/Abstract.php';
-
 class CoreExt_Validate_Numeric extends CoreExt_Validate_Abstract
 {
     /**
@@ -63,7 +61,7 @@ class CoreExt_Validate_Numeric extends CoreExt_Validate_Abstract
     {
         // Verifica se possui o ponto decimal e substitui para o
         // padrão do locale en_US (ponto ".")
-        if (false !== strstr($value, ',')) {
+        if (str_contains($value, ',')) {
             $value = strtr($value, ',', '.');
             $value = floatval($value);
         }

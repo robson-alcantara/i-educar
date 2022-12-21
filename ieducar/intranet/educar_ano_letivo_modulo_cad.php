@@ -1,29 +1,9 @@
 <?php
 
+use App\Models\LegacySchoolClassGrade;
 use App\Services\iDiarioService;
-use RuntimeException;
 
-require_once 'include/clsBase.inc.php';
-require_once 'include/clsCadastro.inc.php';
-require_once 'include/clsBanco.inc.php';
-require_once 'include/pmieducar/geral.inc.php';
-require_once 'Portabilis/Date/Utils.php';
-require_once 'Portabilis/View/Helper/Application.php';
-require_once 'ComponenteCurricular/Model/TurmaDataMapper.php';
-
-class clsIndexBase extends clsBase
-{
-
-    public function Formular()
-    {
-        $this->SetTitulo($this->_instituicao . ' Ano Letivo Etapa');
-        $this->processoAp = 561;
-    }
-}
-
-class indice extends clsCadastro
-{
-
+return new class extends clsCadastro {
     public $pessoa_logada;
 
     public $ref_cod_instituicao;
@@ -49,8 +29,6 @@ class indice extends clsCadastro
     public function Inicializar()
     {
         $retorno = 'Novo';
-
-
 
         $this->ref_cod_modulo = $_GET['ref_cod_modulo'];
         $this->ref_ref_cod_escola = $_GET['ref_cod_escola'];
@@ -178,38 +156,38 @@ class indice extends clsCadastro
 
         $opcoesCampoModulo = [];
 
-            $objTemp = new clsPmieducarModulo();
-            $objTemp->setOrderby('nm_tipo ASC');
+        $objTemp = new clsPmieducarModulo();
+        $objTemp->setOrderby('nm_tipo ASC');
 
-            $lista = $objTemp->lista(
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                1,
-                $ref_cod_instituicao
-            );
+        $lista = $objTemp->lista(
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            1,
+            $ref_cod_instituicao
+        );
 
-            if (is_array($lista) && count($lista)) {
-                $this->modulos = $lista;
+        if (is_array($lista) && count($lista)) {
+            $this->modulos = $lista;
 
-                foreach ($lista as $registro) {
-                    $opcoesCampoModulo[$registro['cod_modulo']] = sprintf('%s - %d etapa(s)', $registro['nm_tipo'], $registro['num_etapas']);
-                }
+            foreach ($lista as $registro) {
+                $opcoesCampoModulo[$registro['cod_modulo']] = sprintf('%s - %d etapa(s)', $registro['nm_tipo'], $registro['num_etapas']);
             }
+        }
 
         $this->campoLista(
             'ref_cod_modulo',
             'Etapa',
             $opcoesCampoModulo,
-            $this->ref_cod_modulo,
+            \Request::get('ref_cod_modulo',$this->ref_cod_modulo),
             null,
             null,
             null,
@@ -228,11 +206,21 @@ class indice extends clsCadastro
         if (is_numeric($this->ref_ano) && is_numeric($this->ref_ref_cod_escola) && !$_POST) {
             $qtd_registros = 0;
 
-            foreach ($this->etapas as $campo) {
-                $this->ano_letivo_modulo[$qtd_registros][] = dataFromPgToBr($campo['data_inicio']);
-                $this->ano_letivo_modulo[$qtd_registros][] = dataFromPgToBr($campo['data_fim']);
-                $this->ano_letivo_modulo[$qtd_registros][] = $campo['dias_letivos'];
-                $qtd_registros++;
+
+            if (Request::has('data_inicio')) {
+                foreach (Request::get('data_inicio') as $key => $campo) {
+                    $this->ano_letivo_modulo[$qtd_registros][] = \Request::get('data_inicio')[$key] ?? null;
+                    $this->ano_letivo_modulo[$qtd_registros][] = \Request::get('data_fim')[$key] ?? null;
+                    $this->ano_letivo_modulo[$qtd_registros][] = \Request::get('dias_letivos')[$key] ?? null;
+                    $qtd_registros++;
+                }
+            } else {
+                foreach ($this->etapas as $key => $campo) {
+                    $this->ano_letivo_modulo[$qtd_registros][] = dataFromPgToBr($campo['data_inicio']);
+                    $this->ano_letivo_modulo[$qtd_registros][] = dataFromPgToBr($campo['data_fim']);
+                    $this->ano_letivo_modulo[$qtd_registros][] = $campo['dias_letivos'];
+                    $qtd_registros++;
+                }
             }
 
             $this->campoTabelaInicio(
@@ -257,8 +245,6 @@ class indice extends clsCadastro
 
     public function Novo()
     {
-
-
         $obj_permissoes = new clsPermissoes();
 
         $obj_permissoes->permissao_cadastra(
@@ -267,6 +253,15 @@ class indice extends clsCadastro
             7,
             'educar_escola_lst.php'
         );
+
+        try {
+            $this->validaDates();
+        } catch (Exception $e) {
+            $_POST = [];
+            $this->Inicializar();
+            $this->mensagem = $e->getMessage();
+            return false;
+        }
 
         if ($this->ref_cod_modulo && $this->data_inicio && $this->data_fim) {
             $this->copiarTurmasUltimoAno($this->ref_ref_cod_escola, $this->ref_ano);
@@ -339,6 +334,15 @@ class indice extends clsCadastro
             'educar_escola_lst.php'
         );
 
+        try {
+            $this->validaDates();
+        } catch (Exception $e) {
+            $_POST = [];
+            $this->Inicializar();
+            $this->mensagem = $e->getMessage();
+            return false;
+        }
+
         if ($this->ref_cod_modulo && $this->data_inicio && $this->data_fim) {
             try {
                 $this->validaModulos();
@@ -396,8 +400,6 @@ class indice extends clsCadastro
 
     public function Excluir()
     {
-
-
         $obj_permissoes = new clsPermissoes();
 
         $obj_permissoes->permissao_excluir(
@@ -562,6 +564,32 @@ class indice extends clsCadastro
 
             $this->copiarComponenteCurricularTurma($turmaOrigem['cod_turma'], $turmaDestinoId);
             $this->copiarModulosTurma($turmaOrigem['cod_turma'], $turmaDestinoId, $anoOrigem, $anoDestino);
+
+            if ($turmaOrigem['multiseriada'] === 1) {
+                $this->criarTurmaMultisseriada($turmaOrigem, $turmaDestinoId);
+            }
+        }
+    }
+
+    private function criarTurmaMultisseriada($turmaOrigem, $turmaDestinoId)
+    {
+        /** @var LegacySchoolClassGrade[] $turmasSeries */
+        $turmasSeries = LegacySchoolClassGrade::query()
+            ->where('escola_id', $turmaOrigem['ref_ref_cod_escola'])
+            ->where('turma_id', $turmaOrigem['cod_turma'])
+            ->get()
+        ;
+
+        foreach ($turmasSeries as $turmaSerie) {
+            $newTurmaSerie = new LegacySchoolClassGrade();
+
+            $newTurmaSerie->escola_id = $turmaOrigem['ref_ref_cod_escola'];
+            $newTurmaSerie->serie_id = $turmaSerie->serie_id;
+            $newTurmaSerie->turma_id = $turmaDestinoId;
+            $newTurmaSerie->boletim_id = $turmaSerie->boletim_id;
+            $newTurmaSerie->boletim_diferenciado_id = $turmaSerie->boletim_diferenciado_id;
+
+            $newTurmaSerie->save();
         }
     }
 
@@ -636,6 +664,25 @@ class indice extends clsCadastro
         return json_encode($retorno);
     }
 
+    protected function validaDates(): void
+    {
+        foreach ($this->data_inicio as $key => $campo) {
+            $data_inicio = \Carbon\Carbon::createFromFormat('d/m/Y',$this->data_inicio[$key]);
+            $data_fim = \Carbon\Carbon::createFromFormat('d/m/Y',$this->data_fim[$key]);
+
+            $etapaAntigo = Portabilis_Utils_Database::selectRow(
+                'SELECT data_inicio,data_fim FROM pmieducar.ano_letivo_modulo WHERE ref_ano <> $1 AND ref_ref_cod_escola = $2 AND
+                                                                   ($3::date BETWEEN data_inicio AND data_fim::date OR $4::date BETWEEN data_inicio AND data_fim OR
+                                                                   ($3::date <= data_inicio AND $4::date >= data_fim)) limit 1',
+                [$this->ref_ano,$this->ref_ref_cod_escola,$data_inicio,$data_fim]
+            );
+
+            if (!empty($etapaAntigo) && isset($etapaAntigo['data_inicio'],$etapaAntigo['data_fim'])) {
+                throw new RuntimeException("A data informada não pode fazer parte do período configurado para outros anos letivos.");
+            }
+        }
+    }
+
     protected function validaModulos()
     {
         $ano = $this->ref_ano;
@@ -661,7 +708,7 @@ class indice extends clsCadastro
         $counts = [];
 
         $counts[] = DB::table('modules.falta_componente_curricular as fcc')
-            ->join('modules.falta_aluno as fa', 'fa.id',  '=', 'fcc.falta_aluno_id')
+            ->join('modules.falta_aluno as fa', 'fa.id', '=', 'fcc.falta_aluno_id')
             ->join('pmieducar.matricula as m', 'm.cod_matricula', '=', 'fa.matricula_id')
             ->whereIn('fcc.etapa', $etapas)
             ->where('m.ref_ref_cod_escola', $escolaId)
@@ -670,7 +717,7 @@ class indice extends clsCadastro
             ->count();
 
         $counts[] = DB::table('modules.falta_geral as fg')
-            ->join('modules.falta_aluno as fa', 'fa.id',  '=', 'fg.falta_aluno_id')
+            ->join('modules.falta_aluno as fa', 'fa.id', '=', 'fg.falta_aluno_id')
             ->join('pmieducar.matricula as m', 'm.cod_matricula', '=', 'fa.matricula_id')
             ->whereIn('fg.etapa', $etapas)
             ->where('m.ref_ref_cod_escola', $escolaId)
@@ -679,7 +726,7 @@ class indice extends clsCadastro
             ->count();
 
         $counts[] = DB::table('modules.nota_componente_curricular as ncc')
-            ->join('modules.nota_aluno as na', 'na.id',  '=', 'ncc.nota_aluno_id')
+            ->join('modules.nota_aluno as na', 'na.id', '=', 'ncc.nota_aluno_id')
             ->join('pmieducar.matricula as m', 'm.cod_matricula', '=', 'na.matricula_id')
             ->whereIn('ncc.etapa', $etapas)
             ->where('m.ref_ref_cod_escola', $escolaId)
@@ -713,20 +760,19 @@ class indice extends clsCadastro
 
         return true;
     }
-}
 
-// Instancia objeto de página
-$pagina = new clsIndexBase();
+    public function makeExtra()
+    {
+        return str_replace(
+            '#modulos',
+            $this->gerarJsonDosModulos(),
+            file_get_contents(__DIR__ . '/scripts/extra/educar-ano-letivo-modulo-cad.js')
+        );
+    }
 
-// Instancia objeto de conteúdo
-$miolo = new indice();
-
-// Atribui o conteúdo à página
-$pagina->addForm($miolo);
-
-// Gera o código HTML
-$pagina->MakeAll();
-?>
-<script type="text/javascript">
-    var modulosDisponiveis = <?php echo $miolo->gerarJsonDosModulos(); ?>;
-</script>
+    public function Formular()
+    {
+        $this->title = 'Ano Letivo Etapa';
+        $this->processoAp = 561;
+    }
+};

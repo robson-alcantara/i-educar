@@ -5,9 +5,8 @@ namespace App\Exceptions;
 use App\Http\Controllers\LegacyController;
 use App_Model_Exception;
 use iEducar\Modules\ErrorTracking\Tracker;
+use iEducar\Support\Exceptions\DisciplinesWithoutInformedHoursException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
-use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use Throwable;
 
 class Handler extends ExceptionHandler
@@ -19,6 +18,7 @@ class Handler extends ExceptionHandler
      */
     protected $dontReport = [
         App_Model_Exception::class,
+        DisciplinesWithoutInformedHoursException::class
     ];
 
     /**
@@ -32,42 +32,23 @@ class Handler extends ExceptionHandler
     ];
 
     /**
-     * Report or log an exception.
-     *
-     * @param Throwable $e
-     *
-     * @throws Throwable
+     * Register the exception handling callbacks for the application.
      *
      * @return void
      */
-    public function report(Throwable $e)
+    public function register()
     {
-        if (config('app.trackerror') && $this->shouldReport($e)) {
-            $data = [
-                'context' => $this->getContext(),
-                'controller' => $this->getController(),
-                'action' => $this->getAction(),
-            ];
+        $this->reportable(function (Throwable $e) {
+            if (config('app.trackerror') && $this->shouldReport($e)) {
+                $data = [
+                    'context' => $this->getContext(),
+                    'controller' => $this->getController(),
+                    'action' => $this->getAction(),
+                ];
 
-            app(Tracker::class)->notify($e, $data);
-        }
-
-        parent::report($e);
-    }
-
-    /**
-     * Render an exception into an HTTP response.
-     *
-     * @param Request   $request
-     * @param Throwable $e
-     *
-     * @throws Throwable
-     *
-     * @return Response
-     */
-    public function render($request, Throwable $e)
-    {
-        return parent::render($request, $e);
+                app(Tracker::class)->notify($e, $data);
+            }
+        });
     }
 
     /**
@@ -115,7 +96,9 @@ class Handler extends ExceptionHandler
             return null;
         }
 
-        return explode('@', $this->getActionName())[1];
+        $action = explode('@', $this->getActionName());
+
+        return $action[1] ?? $action[0];
     }
 
     /**

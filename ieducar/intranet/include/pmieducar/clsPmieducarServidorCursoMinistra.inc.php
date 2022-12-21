@@ -2,8 +2,6 @@
 
 use iEducar\Legacy\Model;
 
-require_once 'include/pmieducar/geral.inc.php';
-
 class clsPmieducarServidorCursoMinistra extends Model
 {
     public $ref_cod_curso;
@@ -19,11 +17,11 @@ class clsPmieducarServidorCursoMinistra extends Model
         $this->_campos_lista = $this->_todos_campos = 'ref_cod_curso, ref_ref_cod_instituicao, ref_cod_servidor';
 
         if (is_numeric($ref_cod_servidor) && is_numeric($ref_ref_cod_instituicao)) {
-                    $this->ref_cod_servidor = $ref_cod_servidor;
-                    $this->ref_ref_cod_instituicao = $ref_ref_cod_instituicao;
+            $this->ref_cod_servidor = $ref_cod_servidor;
+            $this->ref_ref_cod_instituicao = $ref_ref_cod_instituicao;
         }
         if (is_numeric($ref_cod_curso)) {
-                    $this->ref_cod_curso = $ref_cod_curso;
+            $this->ref_cod_curso = $ref_cod_curso;
         }
     }
 
@@ -74,6 +72,7 @@ class clsPmieducarServidorCursoMinistra extends Model
     {
         if (is_numeric($this->ref_cod_curso) && is_numeric($this->ref_ref_cod_instituicao) && is_numeric($this->ref_cod_servidor)) {
             $db = new clsBanco();
+            $gruda = '';
             $set = '';
 
             if ($set) {
@@ -92,7 +91,7 @@ class clsPmieducarServidorCursoMinistra extends Model
      *
      * @return array
      */
-    public function lista($int_ref_cod_curso = null, $int_ref_ref_cod_instituicao = null, $int_ref_cod_servidor = null)
+    public function lista($int_ref_cod_curso = null, $int_ref_ref_cod_instituicao = null, $int_ref_cod_servidor = null, $ref_cod_servidor_funcao = null)
     {
         $sql = "SELECT {$this->_campos_lista} FROM {$this->_tabela}";
         $filtros = '';
@@ -109,6 +108,17 @@ class clsPmieducarServidorCursoMinistra extends Model
         }
         if (is_numeric($int_ref_cod_servidor)) {
             $filtros .= "{$whereAnd} ref_cod_servidor = '{$int_ref_cod_servidor}'";
+            $whereAnd = ' AND ';
+        }
+
+        if (is_numeric($ref_cod_servidor_funcao)) {
+            $filtros .= "{$whereAnd} EXISTS (
+                SELECT 1
+                FROM pmieducar.servidor_disciplina sd
+                WHERE sd.ref_cod_servidor = {$int_ref_cod_servidor}
+                AND sd.ref_cod_funcao = {$ref_cod_servidor_funcao}
+                AND sd.ref_cod_curso = servidor_curso_ministra.ref_cod_curso
+            )";
             $whereAnd = ' AND ';
         }
 

@@ -1,3 +1,4 @@
+addEmailEdit();
 var $submitButton      = $j('#btn_enviar');
 var $escolaInepIdField = $j('#escola_inep_id');
 var $escolaIdField     = $j('#cod_escola');
@@ -55,7 +56,13 @@ const EQUIPAMENTOS_ACESSO_INTERNET = {
   COMPUTADORES: '1'
 };
 
-var submitForm = function(){
+const PODER_PUBLICO_PARCERIA_CONVENIO = {
+  SECRETARIA_ESTADUAL: 1,
+  SECRETARIA_MUNICIPAL: 2,
+  NAO_POSSUI_PARCERIA_OU_CONVENIO: 3
+};
+
+var submitForm = function() {
   var canSubmit = validationUtils.validatesFields(true);
 
   // O campo escolaInepId somente é atualizado ao cadastrar escola,  uma vez que este
@@ -67,6 +74,17 @@ var submitForm = function(){
   if (canSubmit) {
     acao();
   }
+}
+
+function addEmailEdit() {
+  let pessoaId = $j('#pessoaj_id').val();
+  let url = '"' + '/intranet/empresas_cad.php?idpes=' + pessoaId + '#email ' + '"';
+  let editEmail =
+  '<span>' +
+    '<a href=' + url + 'target="_blank" class="span-busca-cep" style="color: blue; margin-left: 10px;">Clique aqui para editar o e-mail</a>' +
+  '</span>';
+
+  $j('#tr_p_email td:last-child').append(editEmail)
 }
 
 var handleGetEscola = function(dataResponse) {
@@ -103,13 +121,78 @@ $submitButton.click(submitForm);
 
 let obrigarCamposCenso = $j('#obrigar_campos_censo').val() == '1';
 
+window.addEventListener(
+  'load', function () {
+    obrigaCampoFormaDeContratacao();
+    habilitaCampoFormaDeContratacao();
+    habilitaAbaMatriculasAtendidas();
+    obrigarCnpjMantenedora();
+  },false
+);
+
+function obrigarCnpjMantenedora() {
+  dependenciaPrivada = $j('#dependencia_administrativa').val() == DEPENDENCIA_ADMINISTRATIVA.PRIVADA;
+  mantenedoraSemFinsLucrativos = $j.inArray(MANTENEDORA_ESCOLA_PRIVADA.INSTITUICOES_SIM_FINS_LUCRATIVOS.toString(), $j('#mantenedora_escola_privada').val()) != -1;
+  escolaRegulamentada = $j('#regulamentacao').val() == 1;
+  emAtividade = $j('#situacao_funcionamento').val() == SITUACAO_FUNCIONAMENTO.EM_ATIVIDADE;
+
+  $j('#cnpj_mantenedora_principal').makeUnrequired();
+  if (obrigarCamposCenso && dependenciaPrivada && mantenedoraSemFinsLucrativos && escolaRegulamentada && emAtividade) {
+    $j('#cnpj_mantenedora_principal').makeRequired();
+  }
+}
+
 $j('#local_funcionamento').on('change', function () {
-    changeLocalFuncionamento()
+    changeLocalFuncionamento();
+    changeNumeroDeSalas();
+});
+
+$j('#nao_ha_funcionarios_para_funcoes').on('change', function () {
+    habilitaRecuros()
 });
 
 $j('#predio_compartilhado_outra_escola').on('change', function () {
     changePredioCompartilhadoEscola()
 });
+
+$j('#poder_publico_parceria_convenio').on('change', function () {
+  obrigaCampoFormaDeContratacao();
+  habilitaCampoFormaDeContratacao();
+});
+
+function habilitaRecuros() {
+
+  const camposDosRecuros = [
+    $j('#qtd_secretario_escolar'),
+    $j('#qtd_auxiliar_administrativo'),
+    $j('#qtd_apoio_pedagogico'),
+    $j('#qtd_coordenador_turno'),
+    $j('#qtd_tecnicos'),
+    $j('#qtd_bibliotecarios'),
+    $j('#qtd_segurancas'),
+    $j('#qtd_auxiliar_servicos_gerais'),
+    $j('#qtd_nutricionistas'),
+    $j('#qtd_profissionais_preparacao'),
+    $j('#qtd_bombeiro'),
+    $j('#qtd_psicologo'),
+    $j('#qtd_fonoaudiologo'),
+    $j('#qtd_vice_diretor'),
+    $j('#qtd_orientador_comunitario')
+  ];
+
+  const isChecked = $j('#nao_ha_funcionarios_para_funcoes').is(':checked');
+  if (isChecked) {
+    camposDosRecuros.forEach(function (campo) {
+      campo.val('');
+      campo.prop('disabled', true);
+    });
+    return;
+  }
+
+  camposDosRecuros.forEach(function (campo) {
+    campo.prop('disabled', false);
+  });
+}
 
 function obrigaCampoRegulamentacao() {
   escolaEmAtividade = $j('#situacao_funcionamento').val() == SITUACAO_FUNCIONAMENTO.EM_ATIVIDADE;
@@ -121,6 +204,62 @@ function obrigaCampoRegulamentacao() {
     $j('#regulamentacao').makeUnrequired();
     $j("#regulamentacao").prop('disabled', true);
   }
+}
+
+$j('#poder_publico_parceria_convenio').on('change', function () {
+  habilitaAbaMatriculasAtendidas();
+});
+
+function habilitaAbaMatriculasAtendidas() {
+  const secretariaEstadual = $j.inArray(PODER_PUBLICO_PARCERIA_CONVENIO.SECRETARIA_ESTADUAL.toString(), $j('#poder_publico_parceria_convenio').val()) != -1
+  const secretariaMunicipal = $j.inArray(PODER_PUBLICO_PARCERIA_CONVENIO.SECRETARIA_MUNICIPAL.toString(), $j('#poder_publico_parceria_convenio').val()) != -1
+
+  if (secretariaEstadual || secretariaMunicipal) {
+    $j('#tab2').show();
+    return;
+  }
+  $j('#tab2').hide();
+}
+
+function obrigaCampoFormaDeContratacao() {
+  const secretariaEstadual = $j.inArray(PODER_PUBLICO_PARCERIA_CONVENIO.SECRETARIA_ESTADUAL.toString(), $j('#poder_publico_parceria_convenio').val()) != -1
+  const secretariaMunicipal = $j.inArray(PODER_PUBLICO_PARCERIA_CONVENIO.SECRETARIA_MUNICIPAL.toString(), $j('#poder_publico_parceria_convenio').val()) != -1
+  const naoPossueParceriaOuConvenio = $j.inArray(PODER_PUBLICO_PARCERIA_CONVENIO.NAO_POSSUI_PARCERIA_OU_CONVENIO.toString(), $j('#poder_publico_parceria_convenio').val()) != -1
+
+  if (obrigarCamposCenso && (secretariaEstadual  || secretariaMunicipal)) {
+    $j('#formas_contratacao_adm_publica_e_outras_instituicoes').makeRequired();
+    $j("#formas_contratacao_adm_publica_e_outras_instituicoes").prop('disabled', false);
+  } else {
+    $j('#formas_contratacao_adm_publica_e_outras_instituicoes').makeUnrequired();
+    $j("#formas_contratacao_adm_publica_e_outras_instituicoes").prop('disabled', true);
+  }
+
+  if (naoPossueParceriaOuConvenio) {
+    $j('#formas_contratacao_adm_publica_e_outras_instituicoes').makeUnrequired();
+    $j("#formas_contratacao_adm_publica_e_outras_instituicoes").prop('disabled', true);
+  }
+}
+
+function habilitaCampoFormaDeContratacao() {
+  const poderPublico = $j('#poder_publico_parceria_convenio').val();
+  const naoPossueParceriaOuConvenio = $j.inArray(PODER_PUBLICO_PARCERIA_CONVENIO.NAO_POSSUI_PARCERIA_OU_CONVENIO.toString(), $j('#poder_publico_parceria_convenio').val()) != -1
+
+  if (!poderPublico) {
+    $j("#formas_contratacao_adm_publica_e_outras_instituicoes").prop('disabled', true);
+    $j("#formas_contratacao_adm_publica_e_outras_instituicoes").val('');
+    $j("#formas_contratacao_adm_publica_e_outras_instituicoes").trigger("chosen:updated");
+    return;
+  }
+
+  if (naoPossueParceriaOuConvenio) {
+    $j("#formas_contratacao_adm_publica_e_outras_instituicoes").prop('disabled', true);
+    $j("#formas_contratacao_adm_publica_e_outras_instituicoes").val('');
+    $j("#formas_contratacao_adm_publica_e_outras_instituicoes").trigger("chosen:updated");
+    return;
+  }
+
+  $j("#formas_contratacao_adm_publica_e_outras_instituicoes").prop('disabled', false);
+  $j("#formas_contratacao_adm_publica_e_outras_instituicoes").trigger("chosen:updated");
 }
 
 function habilitaCampoOrgaoVinculadoEscola() {
@@ -153,6 +292,21 @@ function habilitaCampoEsferaAdministrativa() {
     $j("#esfera_administrativa").prop('disabled', false);
     if (obrigarCamposCenso) {
       $j('#esfera_administrativa').makeRequired();
+    }
+  }
+}
+function changeNumeroDeSalas() {
+  const containsPredioEscolar = $j.inArray(LOCAL_FUNCIONAMENTO.PREDIO_ESCOLAR.toString(), $j('#local_funcionamento').val()) > -1;
+
+  $j('#numero_salas_utilizadas_dentro_predio').prop('disabled', !containsPredioEscolar);
+  if (obrigarCamposCenso) {
+    if (containsPredioEscolar) {
+      $j('#numero_salas_utilizadas_dentro_predio').makeRequired();
+      $j('#numero_salas_utilizadas_fora_predio').makeUnrequired();
+    } else {
+      $j('#numero_salas_utilizadas_dentro_predio').makeUnrequired();
+      $j('#numero_salas_utilizadas_fora_predio').makeRequired();
+      $j('#numero_salas_utilizadas_dentro_predio').val('');
     }
   }
 }
@@ -195,12 +349,24 @@ function changePossuiDependencias() {
     $j("#salas_gerais,#salas_funcionais,#banheiros,#laboratorios,#salas_atividades,#dormitorios,#areas_externas").trigger("chosen:updated");
 }
 
+const link = '<span> Caso não encontre a pessoa jurídica, cadastre em </span><a href="empresas_cad.php" target="_blank">Pessoas > Cadastros > Pessoas jurídicas.</a>';
+$j('#pessoaj_idpes').after(link);
+
 //abas
 
 // hide nos campos das outras abas (deixando só os campos da primeira aba)
-if (!$j('#cnpj').is(':visible')){
+if (!$j('#pessoaj_idpes').is(':visible')) {
 
-  $j('td .formdktd:first').append('<div id="tabControl"><ul><li><div id="tab1" class="escolaTab"> <span class="tabText">Dados gerais</span></div></li><li><div id="tab2" class="escolaTab"> <span class="tabText">Infraestrutura</span></div></li><li><div id="tab3" class="escolaTab"> <span class="tabText">Depend\u00eancias</span></div></li><li><div id="tab4" class="escolaTab"> <span class="tabText">Equipamentos</span></div></li><li><div id="tab5" class="escolaTab"> <span class="tabText">Recursos</span></div></li><li><div id="tab6" class="escolaTab"> <span class="tabText">Dados do ensino</span></div></li></ul></div>');
+  $j('td .formdktd:first').append(
+    '<div id="tabControl"><ul>' +
+    '<li><div id="tab1" class="escolaTab"><span class="tabText">Dados gerais</span></div></li>' +
+    '<li><div id="tab2" class="escolaTab"> <span class="tabText">Matrículas atendidas por convênio</span></div></li>' +
+    '<li><div id="tab3" class="escolaTab"> <span class="tabText">Infraestrutura</span></div></li>' +
+    '<li><div id="tab4" class="escolaTab"> <span class="tabText">Dependências</span></div></li>' +
+    '<li><div id="tab5" class="escolaTab"> <span class="tabText">Equipamentos</span></div></li>' +
+    '<li><div id="tab6" class="escolaTab"> <span class="tabText">Recursos</span></div></li>' +
+    '<li><div id="tab7" class="escolaTab"><span class="tabText">Dados do ensino</span></div>'+
+    '</ul></div>');
   $j('td .formdktd b').remove();
   $j('#tab1').addClass('escolaTab-active').removeClass('escolaTab');
 
@@ -209,19 +375,23 @@ if (!$j('#cnpj').is(':visible')){
   $j('#atendimento_aee').closest('tr').attr('id','tatendimento_aee');
 
   // Pega o número dessa linha
+  linha_inicial_matriculas_atendidas_convenio = $j('#tr_matriculas_atendidas_convenio').index()-2;
   linha_inicial_infra = $j('#tlocal_funcionamento').index()-2;
   linha_inicial_dependencia = $j('#tr_possui_dependencias').index()-2;
   linha_inicial_equipamento = $j('#tr_equipamentos').index()-2;
-  linha_inicial_recursos = $j('#tr_quantidade_profissionais').index()-2;
+  linha_inicial_recursos = $j('#tr_quantidade_profissionais').index()-3;
   linha_inicial_dados = $j('#tatendimento_aee').index()-2;
+
+  // Esconde os campos da primeira ao carregar a tela.
+  $j('#tab2').hide();
 
   // Adiciona um ID à linha que termina o formulário para parar de esconder os campos
   $j('.tableDetalheLinhaSeparador').closest('tr').attr('id','stop');
-  $j('.tablecadastro >tbody  > tr').each(function(index, row) {
-    if (index>=linha_inicial_infra){
-      if (row.id!='stop')
+  $j('.tablecadastro > tbody > tr').each(function(index, row) {
+    if ( index >= linha_inicial_matriculas_atendidas_convenio){
+      if (row.id !== 'stop') {
         row.hide();
-      else{
+      } else {
         return false;
       }
     }
@@ -231,20 +401,20 @@ if (!$j('#cnpj').is(':visible')){
 $j(document).ready(function() {
 
   // on click das abas
-
+  habilitaCampoPoderPublicoOuConvenio();
   // DADOS GERAIS
   $j('#tab1').click(
-    function(){
-
+    function() {
       $j('.escolaTab-active').toggleClass('escolaTab-active escolaTab');
       $j('#tab1').toggleClass('escolaTab escolaTab-active')
-      $j('.tablecadastro >tbody  > tr').each(function(index, row) {
-        if (index>=linha_inicial_infra){
-          if (row.id!='stop')
+      $j('.tablecadastro > tbody > tr').each(function(index, row) {
+        if (index >= linha_inicial_matriculas_atendidas_convenio) {
+          if (row.id !== 'stop') {
             row.hide();
-          else
+          } else {
             return false;
-        }else{
+          }
+        } else {
           row.show();
         }
       });
@@ -256,18 +426,17 @@ $j(document).ready(function() {
     function(){
       $j('.escolaTab-active').toggleClass('escolaTab-active escolaTab');
       $j('#tab2').toggleClass('escolaTab escolaTab-active')
-      $j('.tablecadastro >tbody  > tr').each(function(index, row) {
-        if (row.id!='stop'){
-          if (index>=linha_inicial_infra && index < linha_inicial_dependencia){
+      $j('.tablecadastro > tbody > tr').each(function(index, row) {
+        if (row.id !== 'stop'){
+          if (index >= linha_inicial_matriculas_atendidas_convenio && index < linha_inicial_infra) {
             row.show();
-          }else if (index>0){
+          } else if (index > 0){
             row.hide();
           }
-        }else
+        }else {
           return false;
+        }
       });
-      changeLocalFuncionamento();
-      changePredioCompartilhadoEscola();
     });
 
   // DEPENDENCIAS
@@ -275,17 +444,20 @@ $j(document).ready(function() {
     function(){
       $j('.escolaTab-active').toggleClass('escolaTab-active escolaTab');
       $j('#tab3').toggleClass('escolaTab escolaTab-active')
-      $j('.tablecadastro >tbody  > tr').each(function(index, row) {
-        if (row.id!='stop'){
-          if (index>=linha_inicial_dependencia && index < linha_inicial_equipamento){
+      $j('.tablecadastro > tbody > tr').each(function(index, row) {
+        if (row.id !== 'stop') {
+          if (index >= linha_inicial_infra && index < linha_inicial_dependencia) {
             row.show();
-          }else if (index>0){
+          } else if (index > 0) {
             row.hide();
           }
-        }else
+        } else {
           return false;
+        }
       });
-      habilitaCamposNumeroSalas();
+      changeLocalFuncionamento();
+      changePredioCompartilhadoEscola();
+      changeNumeroDeSalas();
     });
 
   // EQUIPAMENTOS
@@ -293,20 +465,18 @@ $j(document).ready(function() {
     function(){
       $j('.escolaTab-active').toggleClass('escolaTab-active escolaTab');
       $j('#tab4').toggleClass('escolaTab escolaTab-active')
-      $j('.tablecadastro >tbody  > tr').each(function(index, row) {
-        if (row.id!='stop'){
-          if (index>=linha_inicial_equipamento && index < linha_inicial_recursos){
+      $j('.tablecadastro > tbody > tr').each(function(index, row) {
+        if (row.id !== 'stop') {
+          if (index >= linha_inicial_dependencia && index < linha_inicial_equipamento){
             row.show();
-          }else if (index>0){
+          } else if (index > 0) {
             row.hide();
           }
-        }else
+        } else {
           return false;
+        }
       });
-      habilitaCampoAcessoInternet();
-      habilitaCampoEquipamentosAcessoInternet();
-      habilitaCampoRedeLocal();
-      habilitaCamposQuantidadeComputadoresAlunos();
+      habilitaCamposNumeroSalas();
     });
 
   // Dados educacionais
@@ -314,47 +484,65 @@ $j(document).ready(function() {
     function(){
       $j('.escolaTab-active').toggleClass('escolaTab-active escolaTab');
       $j('#tab5').toggleClass('escolaTab escolaTab-active')
-      $j('.tablecadastro >tbody  > tr').each(function(index, row) {
-        if (row.id!='stop'){
-          if (index>=linha_inicial_recursos && index < linha_inicial_dados){
+      $j('.tablecadastro > tbody > tr').each(function(index, row) {
+        if (row.id !== 'stop'){
+          if (index >= linha_inicial_equipamento && index < linha_inicial_recursos){
             row.show();
-          }else if (index>0){
+          }else if ( index > 0){
             row.hide();
           }
-        }else
+        } else {
           return false;
+        }
       });
-   });
+      habilitaCampoAcessoInternet();
+      habilitaCampoEquipamentosAcessoInternet();
+      habilitaCamposQuantidadeComputadoresAlunos();
+      obrigaEquipamentos();
+    });
+
+  function obrigaEquipamentos() {
+    $j('#equipamentos').makeUnrequired();
+    if(obrigarCamposCenso) {
+      $j('#equipamentos').makeRequired();
+    }
+  }
 
   // Dados educacionais
   $j('#tab6').click(
-    function(){
+    function() {
       $j('.escolaTab-active').toggleClass('escolaTab-active escolaTab');
       $j('#tab6').toggleClass('escolaTab escolaTab-active')
-      $j('.tablecadastro >tbody  > tr').each(function(index, row) {
-        if (row.id!='stop'){
-          if (index>=linha_inicial_dados){
+      $j('.tablecadastro > tbody > tr').each(function(index, row) {
+        if (row.id !== 'stop'){
+          if (index >= linha_inicial_recursos && index < linha_inicial_dados){
             row.show();
-          }else if (index>0){
+          } else if (index > 0) {
             row.hide();
           }
-        }else
+          habilitaRecuros();
+        } else {
           return false;
-      });
-
-      if($j('#dependencia_administrativa').val() == DEPENDENCIA_ADMINISTRATIVA.PRIVADA && $j('#situacao_funcionamento').val() == '1'){
-            $j('#categoria_escola_privada').prop('disabled', false);
-            $j('#conveniada_com_poder_publico').prop('disabled', false);
-            $j('#mantenedora_escola_privada').prop('disabled', false);
-            $j("#mantenedora_escola_privada").trigger("chosen:updated");
-            $j('#cnpj_mantenedora_principal').prop('disabled', false);
-        }else{
-            $j('#categoria_escola_privada').prop('disabled', true);
-            $j('#conveniada_com_poder_publico').prop('disabled', true);
-            $j('#mantenedora_escola_privada').prop('disabled', true);
-            $j("#mantenedora_escola_privada").trigger("chosen:updated");
-            $j('#cnpj_mantenedora_principal').prop('disabled', true);
         }
+      });
+    });
+
+  // Dados educacionais
+  $j('#tab7').click(
+    function() {
+      $j('.escolaTab-active').toggleClass('escolaTab-active escolaTab');
+      $j('#tab7').toggleClass('escolaTab escolaTab-active')
+      $j('.tablecadastro > tbody > tr').each(function(index, row) {
+        if (row.id !== 'stop') {
+          if (index >= linha_inicial_dados) {
+            row.show();
+          } else if (index > 0){
+            row.hide();
+          }
+        } else {
+          return false;
+        }
+      });
 
         habilitarCampoUnidadeVinculada();
         mostrarCamposDaUnidadeVinculada();
@@ -363,7 +551,16 @@ $j(document).ready(function() {
         habilitaCampoEducacaoIndigena();
         habilitaCampoLinguaMinistrada();
         habilitaReservaVagasCotas();
+        obrigraInstrumentosPedagogicos();
       });
+
+
+  function  obrigraInstrumentosPedagogicos() {
+    $j('#instrumentos_pedagogicos').makeUnrequired();
+    if (obrigarCamposCenso) {
+      $j('#instrumentos_pedagogicos').makeRequired();
+    }
+  }
 
   // fix checkboxs
   $j('input:checked').val('on');
@@ -372,10 +569,30 @@ $j(document).ready(function() {
     $j('#categoria_escola_privada').makeUnrequired();
     $j('#conveniada_com_poder_publico').makeUnrequired();
     $j('#mantenedora_escola_privada').makeUnrequired();
+    $j('#categoria_escola_privada').prop('disabled', true);
+    $j('#conveniada_com_poder_publico').prop('disabled', true);
+    $j('#mantenedora_escola_privada').prop('disabled', true);
+    $j("#mantenedora_escola_privada").trigger("chosen:updated");
+    $j('#cnpj_mantenedora_principal').prop('disabled', true);
+
     if (obrigarCamposCenso && $j('#situacao_funcionamento').val() == '1' && $j('#dependencia_administrativa').val() == DEPENDENCIA_ADMINISTRATIVA.PRIVADA){
-      $j('#categoria_escola_privada').makeRequired();
       $j('#conveniada_com_poder_publico').makeRequired();
       $j('#mantenedora_escola_privada').makeRequired();
+    }
+
+    if ($j('#situacao_funcionamento').val() == '1' && $j('#dependencia_administrativa').val() == DEPENDENCIA_ADMINISTRATIVA.PRIVADA){
+      $j('#conveniada_com_poder_publico').prop('disabled', false);
+      $j('#mantenedora_escola_privada').prop('disabled', false);
+      $j("#mantenedora_escola_privada").trigger("chosen:updated");
+      $j('#cnpj_mantenedora_principal').prop('disabled', false);
+    }
+
+    if (obrigarCamposCenso && $j('#dependencia_administrativa').val() == DEPENDENCIA_ADMINISTRATIVA.PRIVADA){
+      $j('#categoria_escola_privada').makeRequired();
+    }
+
+    if ($j('#dependencia_administrativa').val() == DEPENDENCIA_ADMINISTRATIVA.PRIVADA){
+      $j('#categoria_escola_privada').prop('disabled', false);
     }
   }
 
@@ -452,33 +669,40 @@ $j(document).ready(function() {
     }
   }
 
+  $j('#mantenedora_escola_privada').on('change', () => obrigarCnpjMantenedora());
 
-  $j('#mantenedora_escola_privada').change(
-    function (){
-      obrigarCnpjMantenedora();
-    }
-  );
 
-  function obrigarCnpjMantenedora() {
-    dependenciaPrivada = $j('#dependencia_administrativa').val() == DEPENDENCIA_ADMINISTRATIVA.PRIVADA;
-    mantenedoraSemFinsLucrativos = $j.inArray(MANTENEDORA_ESCOLA_PRIVADA.INSTITUICOES_SIM_FINS_LUCRATIVOS.toString(), $j('#mantenedora_escola_privada').val()) != -1;
-    escolaRegulamentada = $j('#regulamentacao').val() == 1;
-    emAtividade = $j('#situacao_funcionamento').val() == SITUACAO_FUNCIONAMENTO.EM_ATIVIDADE;
-
-    $j('#cnpj_mantenedora_principal').makeUnrequired();
-
-    if (obrigarCamposCenso && dependenciaPrivada && mantenedoraSemFinsLucrativos && escolaRegulamentada && emAtividade) {
-      $j('#cnpj_mantenedora_principal').makeRequired();
-    }
-  }
 
   $j('#situacao_funcionamento').change(
     function(){
       verificaCamposDepAdm();
       obrigaCampoRegulamentacao();
       habilitarCampoUnidadeVinculada();
+      habilitaCampoPoderPublicoOuConvenio();
+      obrigaCampoFormaDeContratacao();
+      habilitaCampoFormaDeContratacao();
     }
   );
+
+  function habilitaCampoPoderPublicoOuConvenio() {
+
+    let situacaoFuncionamento = $j('#situacao_funcionamento').val();
+
+    if (obrigarCamposCenso && situacaoFuncionamento == SITUACAO_FUNCIONAMENTO.EM_ATIVIDADE) {
+      $j('#poder_publico_parceria_convenio').makeRequired();
+      $j("#poder_publico_parceria_convenio").val('');
+      $j("#poder_publico_parceria_convenio").prop('disabled', false);
+      $j("#poder_publico_parceria_convenio").trigger("chosen:updated");
+      return;
+    }
+
+    if (obrigarCamposCenso && situacaoFuncionamento != SITUACAO_FUNCIONAMENTO.EM_ATIVIDADE) {
+      $j('#poder_publico_parceria_convenio').makeUnrequired();
+      $j("#poder_publico_parceria_convenio").val('disabled', true);
+      $j("#poder_publico_parceria_convenio").prop('disabled', true);
+      $j("#poder_publico_parceria_convenio").trigger("chosen:updated");
+    }
+  }
 
   $j('#regulamentacao').change(
     function(){
@@ -520,7 +744,11 @@ $j(document).ready(function() {
   $j('#longitude').on('change', verificaLatitudeLongitude);
 });
 
-document.getElementById('cnpj').readOnly = true;
+const cnpj = document.getElementById('cnpj');
+
+if (cnpj !== null) {
+  document.getElementById('cnpj').readOnly = true;
+}
 
 function getRedeEnsino(xml_escola_rede_ensino)
 {
@@ -747,29 +975,12 @@ $j('#uso_internet').on('change', function () {
     habilitaCampoEquipamentosAcessoInternet();
 });
 
-function habilitaCampoRedeLocal() {
-    let disabled = $j.inArray(EQUIPAMENTOS.COMPUTADORES.toString(), $j('#equipamentos').val()) == -1;
-
-    if (disabled) {
-        makeUnrequired('rede_local');
-    } else if(obrigarCamposCenso){
-        makeRequired('rede_local');
-    }
-
-    $j('#rede_local').prop('disabled', disabled);
-
-    $j("#rede_local").trigger("chosen:updated");
-}
 function habilitaCamposQuantidadeComputadoresAlunos() {
     let disabled = $j.inArray(EQUIPAMENTOS_ACESSO_INTERNET.COMPUTADORES, $j('#equipamentos_acesso_internet').val()) == -1;
 
     $j('#quantidade_computadores_alunos_mesa, #quantidade_computadores_alunos_portateis, #quantidade_computadores_alunos_tablets').prop('disabled', disabled);
     $j("#quantidade_computadores_alunos_mesa, #quantidade_computadores_alunos_portateis, #quantidade_computadores_alunos_tablets").trigger("chosen:updated");
 }
-
-$j('#equipamentos').on('change', function () {
-    habilitaCampoRedeLocal();
-});
 
 $j('#equipamentos_acesso_internet').on('change', function () {
   habilitaCamposQuantidadeComputadoresAlunos();

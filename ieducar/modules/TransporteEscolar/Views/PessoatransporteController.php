@@ -2,15 +2,10 @@
 
 use iEducar\Support\View\SelectOptions;
 
-require_once 'lib/Portabilis/Controller/Page/EditController.php';
-require_once 'Usuario/Model/FuncionarioDataMapper.php';
-require_once 'include/modules/clsModulesRotaTransporteEscolar.inc.php';
-require_once('include/clsBanco.inc.php');
-
 class PessoatransporteController extends Portabilis_Controller_Page_EditController
 {
     protected $_dataMapper = 'Usuario_Model_FuncionarioDataMapper';
-    protected $_titulo = 'i-Educar - Usu&aacute;rios de transporte';
+    protected $_titulo = 'i-Educar - Usuários de transporte';
 
     protected $_nivelAcessoOption = App_Model_NivelAcesso::SOMENTE_ESCOLA;
     protected $_processoAp = 21240;
@@ -55,7 +50,7 @@ class PessoatransporteController extends Portabilis_Controller_Page_EditControll
             'delete_success' => '/intranet/transporte_pessoa_lst.php'
         ], $this->_options);
         $nomeMenu = $this->getRequest()->id == null ? 'Cadastrar' : 'Editar';
-        $this->breadcrumb("$nomeMenu usu&aacute;rio de transporte", [
+        $this->breadcrumb("$nomeMenu usuário de transporte", [
             url('intranet/educar_transporte_escolar_index.php') => 'Transporte escolar',
         ]);
     }

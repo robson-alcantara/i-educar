@@ -1,9 +1,5 @@
 <?php
 
-require_once 'lib/Portabilis/Controller/ApiCoreController.php';
-require_once 'lib/Portabilis/Array/Utils.php';
-require_once 'lib/Portabilis/String/Utils.php';
-
 class MunicipioController extends ApiCoreController
 {
 
@@ -23,40 +19,65 @@ class MunicipioController extends ApiCoreController
         return $resource['id'] . " - $nome ($siglaUf)";
     }
 
+    protected function formatResourceValueOnlyName($resource)
+    {
+        return $this->toUtf8($resource['name'], ['transform' => true]);
+    }
+
     public function Gerar()
     {
         if ($this->isRequestFor('get', 'municipio-search')) {
             $this->appendResponse($this->search());
+        } elseif ($this->isRequestFor('get', 'municipio-name-search')) {
+            $this->appendResponse($this->search(true));
         } else {
             $this->notImplementedOperationError();
         }
     }
 
-    protected function search()
+    protected function search($onlyName = false)
     {
         if ($this->canSearch()) {
-            $sql = <<<SQL
-                SELECT
-                    DISTINCT sigla_uf,
+
+            $fields = " DISTINCT sigla_uf,
                     idmun AS id,
                     nome AS name,
-                    LENGTH(nome) AS size
+                    LENGTH(nome) AS size ";
+
+            if($onlyName === true) {
+                $fields = "
+                    nome AS id,
+                    nome AS name,
+                    LENGTH(nome) AS size ";
+            }
+
+            if (is_numeric($this->getRequest()->query)){
+                $where = 'AND idmun = :idmun';
+                $field = 'idmun';
+            } else {
+                $where = "AND LOWER(UNACCENT(nome)) LIKE '%' || LOWER(UNACCENT(:nome)) || '%'";
+                $field = 'nome';
+            }
+            $sql = "
+                SELECT
+                    {$fields}
                 FROM
                     public.municipio
                 WHERE TRUE
-                    AND LOWER(UNACCENT(nome)) LIKE '%' || LOWER(UNACCENT(:nome)) || '%'
+                    {$where}
                 ORDER BY
                     size,
                     nome
-                LIMIT 15
-SQL;
+                LIMIT 15";
 
-            $tmpResults = $this->fetchPreparedQuery($sql, ['nome' => trim($this->getRequest()->query)], false);
+            $tmpResults = $this->fetchPreparedQuery($sql, [$field => trim($this->getRequest()->query)], false);
             $results = [];
 
             foreach ($tmpResults as $result) {
                 if (!isset($results[$result['id']])) {
-                    $results[$result['id']] = $this->formatResourceValue($result);
+                    $results[$result['id']] = $onlyName === true ?
+                        $this->formatResourceValueOnlyName($result) :
+                        $this->formatResourceValue($result);
                 }
             }
 

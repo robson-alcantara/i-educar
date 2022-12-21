@@ -2,8 +2,6 @@
 
 use iEducar\Legacy\Model;
 
-require_once 'include/pmieducar/geral.inc.php';
-
 class clsPmieducarInfraComodoFuncao extends Model
 {
     public $cod_infra_comodo_funcao;
@@ -26,13 +24,13 @@ class clsPmieducarInfraComodoFuncao extends Model
         $this->_campos_lista = $this->_todos_campos = 'icf.cod_infra_comodo_funcao, icf.ref_usuario_exc, icf.ref_usuario_cad, icf.nm_funcao, icf.desc_funcao, icf.data_cadastro, icf.data_exclusao, icf.ativo, icf.ref_cod_escola ';
 
         if (is_numeric($ref_usuario_cad)) {
-                    $this->ref_usuario_cad = $ref_usuario_cad;
+            $this->ref_usuario_cad = $ref_usuario_cad;
         }
         if (is_numeric($ref_usuario_exc)) {
-                    $this->ref_usuario_exc = $ref_usuario_exc;
+            $this->ref_usuario_exc = $ref_usuario_exc;
         }
         if (is_numeric($ref_cod_escola)) {
-                    $this->ref_cod_escola = $ref_cod_escola;
+            $this->ref_cod_escola = $ref_cod_escola;
         }
         if (is_numeric($cod_infra_comodo_funcao)) {
             $this->cod_infra_comodo_funcao = $cod_infra_comodo_funcao;
@@ -114,6 +112,7 @@ class clsPmieducarInfraComodoFuncao extends Model
     {
         if (is_numeric($this->cod_infra_comodo_funcao) && is_numeric($this->ref_usuario_exc)) {
             $db = new clsBanco();
+            $gruda = '';
             $set = '';
 
             if (is_numeric($this->ref_usuario_exc)) {

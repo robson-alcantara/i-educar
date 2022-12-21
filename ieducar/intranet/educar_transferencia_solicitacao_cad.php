@@ -6,67 +6,29 @@ use App\Models\LegacyTransferRequest;
 use App\Services\PromotionService;
 use Illuminate\Support\Facades\DB;
 
-require_once 'include/clsBase.inc.php';
-require_once 'include/clsCadastro.inc.php';
-require_once 'include/clsBanco.inc.php';
-require_once 'include/pmieducar/geral.inc.php';
-require_once 'lib/Portabilis/Date/Utils.php';
-require_once 'modules/Avaliacao/Model/NotaAlunoDataMapper.php';
-require_once 'modules/Avaliacao/Model/NotaComponenteMediaDataMapper.php';
-require_once 'lib/App/Model/MatriculaSituacao.php';
-require_once 'modules/Avaliacao/Views/PromocaoApiController.php';
-require_once 'lib/CoreExt/Controller/Request.php';
-
-class clsIndexBase extends clsBase
-{
-    public function Formular()
-    {
-        $this->SetTitulo("{$this->_instituicao} i-Educar - Transferência Solicitação");
-        $this->processoAp = '578';
-    }
-}
-
-class indice extends clsCadastro
-{
+return new class extends clsCadastro {
     public $cod_transferencia_solicitacao;
-
     public $ref_cod_transferencia_tipo;
-
     public $ref_usuario_exc;
-
     public $ref_usuario_cad;
-
     public $ref_cod_matricula_entrada;
-
     public $ref_cod_matricula_saida;
-
     public $observacao;
-
     public $data_cadastro;
-
     public $data_exclusao;
-
     public $ativo;
-
     public $data_transferencia;
-
     public $data_cancel;
-
     public $ref_cod_matricula;
-
     public $transferencia_tipo;
-
     public $ref_cod_aluno;
-
     public $nm_aluno;
-
     public $escola_destino_externa;
-
     public $estado_escola_destino_externa;
-
     public $municipio_escola_destino_externa;
-
     public $ref_cod_escola;
+    public $ref_cod_escola_destino;
+    public $escola_em_outro_municipio;
 
     public function __construct()
     {
@@ -108,7 +70,6 @@ class indice extends clsCadastro
             }
 
             $this->Excluir();
-
         }
 
         $this->url_cancelar = "educar_matricula_det.php?cod_matricula={$this->ref_cod_matricula}";
@@ -189,7 +150,6 @@ class indice extends clsCadastro
         $this->campoLista('ref_cod_transferencia_tipo', 'Motivo', $opcoesMotivo, $this->ref_cod_transferencia_tipo);
         $this->inputsHelper()->date('data_cancel', ['label' => 'Data', 'placeholder' => 'dd/mm/yyyy', 'value' => date('d/m/Y')]);
         $this->campoMemo('observacao', 'Observação', $this->observacao, 60, 5, false);
-
     }
 
     public function Novo()
@@ -206,15 +166,11 @@ class indice extends clsCadastro
         if (is_null($det_matricula['data_matricula'])) {
             if (substr($det_matricula['data_cadastro'], 0, 10) > $this->data_cancel) {
                 $this->mensagem = 'Data de transferência não pode ser inferior a data da matrícula.<br>';
-
                 return false;
             }
-        } else {
-            if (substr($det_matricula['data_matricula'], 0, 10) > $this->data_cancel) {
+        } elseif (substr($det_matricula['data_matricula'], 0, 10) > $this->data_cancel) {
                 $this->mensagem = 'Data de transferência não pode ser inferior a data da matrícula.<br>';
-
                 return false;
-            }
         }
 
         $obj->data_cancel = $this->data_cancel;
@@ -259,7 +215,7 @@ class indice extends clsCadastro
         }
         clsPmieducarHistoricoEscolar::gerarHistoricoTransferencia($this->ref_cod_matricula, $this->pessoa_logada);
 
-        if($this->escola_em_outro_municipio === 'on'){
+        if ($this->escola_em_outro_municipio === 'on') {
             $this->ref_cod_escola = null;
         } else {
             $this->escola_destino_externa = null;
@@ -288,7 +244,7 @@ class indice extends clsCadastro
                 try {
                     (new Avaliacao_Model_NotaComponenteMediaDataMapper())
                         ->updateSituation($notaAlunoId, App_Model_MatriculaSituacao::TRANSFERIDO);
-                } catch(\Throwable $exception) {
+                } catch (\Throwable) {
                     DB::rollback();
                 }
             }
@@ -321,7 +277,7 @@ class indice extends clsCadastro
             $obj = new clsPmieducarTransferenciaSolicitacao($this->cod_transferencia_solicitacao, null, $this->pessoa_logada, null, null, null, null, null, null, 0);
             $excluiu = $obj->excluir();
             if ($excluiu) {
-                $this->mensagem .= 'Exclusão efetuada com sucesso.<br>';
+                $this->mensagem = 'Exclusão efetuada com sucesso.<br>';
                 $this->simpleRedirect("educar_matricula_det.php?cod_matricula={$this->ref_cod_matricula}");
             }
         } else {
@@ -334,10 +290,10 @@ class indice extends clsCadastro
 
         return false;
     }
-}
 
-$pagina = new clsIndexBase();
-$miolo = new indice();
-
-$pagina->addForm($miolo);
-$pagina->MakeAll();
+    public function Formular()
+    {
+        $this->title = 'Transferência Solicitação';
+        $this->processoAp = '578';
+    }
+};

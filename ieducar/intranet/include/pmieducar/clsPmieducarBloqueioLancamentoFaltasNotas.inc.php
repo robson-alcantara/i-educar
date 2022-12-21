@@ -2,8 +2,6 @@
 
 use iEducar\Legacy\Model;
 
-require_once 'include/pmieducar/geral.inc.php';
-
 class clsPmieducarBloqueioLancamentoFaltasNotas extends Model
 {
     public $cod_bloqueio;
@@ -111,6 +109,7 @@ class clsPmieducarBloqueioLancamentoFaltasNotas extends Model
     {
         if (is_numeric($this->cod_bloqueio)) {
             $db = new clsBanco();
+            $gruda = '';
             $set = '';
 
             if (is_numeric($this->ano)) {

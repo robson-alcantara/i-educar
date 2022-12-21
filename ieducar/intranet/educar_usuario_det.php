@@ -1,27 +1,10 @@
 <?php
 
-require_once 'include/clsBase.inc.php';
-require_once 'include/clsDetalhe.inc.php';
-require_once 'include/clsBanco.inc.php';
-require_once 'include/pmieducar/geral.inc.php';
-require_once 'include/pmieducar/clsPmieducarEscolaUsuario.inc.php';
-
-class clsIndexBase extends clsBase
-{
-    public function Formular()
-    {
-        $this->SetTitulo("{$this->_instituicao} i-Educar - Usu&aacute;rio");
-        $this->processoAp = '555';
-    }
-}
-
-class indice extends clsDetalhe
-{
+return new class extends clsDetalhe {
     public $cod_usuario;
     public $ref_cod_escola;
     public $ref_cod_instituicao;
     public $ref_funcionario_cad;
-    public $ref_funcionario_exc;
     public $ref_cod_tipo_usuario;
     public $data_cadastro;
     public $data_exclusao;
@@ -29,7 +12,7 @@ class indice extends clsDetalhe
 
     public function Gerar()
     {
-        $this->titulo = 'Usu&aacute;rio - Detalhe';
+        $this->titulo = 'Usuário - Detalhe';
 
         $cod_pessoa = $this->cod_usuario = $_GET['ref_pessoa'];
 
@@ -48,7 +31,7 @@ class indice extends clsDetalhe
         $this->addDetalhe(['E-mail usuário', $det_funcionario['email']]);
 
         if (!empty($det_funcionario['matricula_interna'])) {
-            $this->addDetalhe(['Matr&iacute;cula interna', $det_funcionario['matricula_interna']]);
+            $this->addDetalhe(['Matrícula interna', $det_funcionario['matricula_interna']]);
         }
 
         $obj_fisica = new clsFisica($cod_pessoa);
@@ -75,6 +58,7 @@ class indice extends clsDetalhe
         $escolasUsuario = new clsPmieducarEscolaUsuario();
         $escolasUsuario = $escolasUsuario->lista($cod_pessoa);
 
+        $nomesEscola = [];
         foreach ($escolasUsuario as $escola) {
             $escolaDetalhe = new clsPmieducarEscola($escola['ref_cod_escola']);
             $escolaDetalhe = $escolaDetalhe->detalhe();
@@ -84,11 +68,11 @@ class indice extends clsDetalhe
         $registro['ref_cod_escola'] = $nomesEscola;
 
         if ($registro['ref_cod_tipo_usuario']) {
-            $this->addDetalhe([ 'Tipo Usu&aacute;rio', "{$registro['ref_cod_tipo_usuario']}"]);
+            $this->addDetalhe([ 'Tipo Usuário', "{$registro['ref_cod_tipo_usuario']}"]);
         }
 
         if ($registro['ref_cod_instituicao']) {
-            $this->addDetalhe([ 'Institui&ccedil;&atilde;o', "{$registro['ref_cod_instituicao']}"]);
+            $this->addDetalhe([ 'Instituição', "{$registro['ref_cod_instituicao']}"]);
         }
 
         if ($registro['ref_cod_escola']) {
@@ -108,10 +92,10 @@ class indice extends clsDetalhe
             url('intranet/educar_configuracoes_index.php') => 'Configurações',
         ]);
     }
-}
 
-$pagina = new clsIndexBase();
-$miolo = new indice();
-
-$pagina->addForm($miolo);
-$pagina->MakeAll();
+    public function Formular()
+    {
+        $this->title = 'Usuário';
+        $this->processoAp = '555';
+    }
+};

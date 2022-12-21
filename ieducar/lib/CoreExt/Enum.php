@@ -1,7 +1,5 @@
 <?php
 
-require_once 'CoreExt/Singleton.php';
-
 abstract class CoreExt_Enum extends CoreExt_Singleton implements ArrayAccess
 {
     /**
@@ -18,6 +16,7 @@ abstract class CoreExt_Enum extends CoreExt_Singleton implements ArrayAccess
      *
      * @return mixed
      */
+    #[\ReturnTypeWillChange]
     public function getValue($key)
     {
         return $this->_data[$key];
@@ -28,6 +27,7 @@ abstract class CoreExt_Enum extends CoreExt_Singleton implements ArrayAccess
      *
      * @return array
      */
+    #[\ReturnTypeWillChange]
     public function getValues()
     {
         return array_values($this->_data);
@@ -40,6 +40,7 @@ abstract class CoreExt_Enum extends CoreExt_Singleton implements ArrayAccess
      *
      * @return int|string
      */
+    #[\ReturnTypeWillChange]
     public function getKey($value)
     {
         return array_search($value, $this->_data);
@@ -50,6 +51,7 @@ abstract class CoreExt_Enum extends CoreExt_Singleton implements ArrayAccess
      *
      * @return array
      */
+    #[\ReturnTypeWillChange]
     public function getKeys()
     {
         return array_keys($this->_data);
@@ -74,7 +76,7 @@ abstract class CoreExt_Enum extends CoreExt_Singleton implements ArrayAccess
      *
      * @return bool
      */
-    public function offsetExists($offset)
+    public function offsetExists($offset): bool
     {
         return isset($this->_data[$offset]);
     }
@@ -85,10 +87,11 @@ abstract class CoreExt_Enum extends CoreExt_Singleton implements ArrayAccess
      * @link  http://br2.php.net/manual/en/arrayaccess.offsetunset.php
      *
      * @throws CoreExt_Exception
+     *
      */
+    #[\ReturnTypeWillChange]
     public function offsetUnset($offset)
     {
-        require_once 'CoreExt/Exception.php';
         throw new CoreExt_Exception('Um "' . get_class($this) . '" é um objeto read-only.');
     }
 
@@ -104,9 +107,9 @@ abstract class CoreExt_Enum extends CoreExt_Singleton implements ArrayAccess
      *
      * @throws CoreExt_Exception
      */
+    #[\ReturnTypeWillChange]
     public function offsetSet($offset, $value)
     {
-        require_once 'CoreExt/Exception.php';
         throw new CoreExt_Exception('Um "' . get_class($this) . '" é um objeto read-only.');
     }
 
@@ -119,6 +122,7 @@ abstract class CoreExt_Enum extends CoreExt_Singleton implements ArrayAccess
      *
      * @return mixed
      */
+    #[\ReturnTypeWillChange]
     public function offsetGet($offset)
     {
         return $this->_data[$offset];

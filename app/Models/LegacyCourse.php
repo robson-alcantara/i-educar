@@ -10,8 +10,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 /**
  * LegacyCourse
  *
- * @property string $name Nome do curso
- * @property LegacyGrade[] grades
+ * @property string        $name
+ * @property LegacyGrade[] $grades
  */
 class LegacyCourse extends Model
 {
@@ -82,10 +82,35 @@ class LegacyCourse extends Model
 
     /**
      * @param Builder $query
+     *
      * @return Builder
      */
     public function scopeIsEja($query)
     {
         return $query->where('modalidade_curso', ModalidadeCurso::EJA);
+    }
+
+    public function scopeActive(Builder $query)
+    {
+        return $query->where('curso.ativo', 1);
+    }
+
+    public function scopeRegistrationsActiveLastYear(Builder $query): Builder
+    {
+        return $query->join('pmieducar.matricula', 'curso.cod_curso', '=', 'matricula.ref_cod_curso')
+            ->where('matricula.ano', date('Y') - 1)
+            ->where('matricula.ativo', 1);
+    }
+
+    public function scopeRegistrationsActiveCurrentYear(Builder $query): Builder
+    {
+        return $query->join('pmieducar.matricula', 'curso.cod_curso', '=', 'matricula.ref_cod_curso')
+            ->where('matricula.ano', date('Y'))
+            ->where('matricula.ativo', 1);
+    }
+
+    public function scopeHasModality(Builder $query): Builder
+    {
+        return $query->where('modalidade_curso', '>', 0);
     }
 }

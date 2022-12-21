@@ -2,8 +2,6 @@
 
 use iEducar\Legacy\Model;
 
-require_once 'include/pmieducar/geral.inc.php';
-
 class clsModulesMoradiaAluno extends Model
 {
     public $ref_cod_aluno;
@@ -395,6 +393,7 @@ class clsModulesMoradiaAluno extends Model
         if (is_numeric($this->ref_cod_aluno)) {
             $db = new clsBanco();
             $set = '';
+            $gruda = '';
 
             if (is_numeric($this->ref_cod_aluno)) {
                 $set .= "{$gruda}ref_cod_aluno = '{$this->ref_cod_aluno}'";
@@ -566,7 +565,7 @@ class clsModulesMoradiaAluno extends Model
         $countCampos = count(explode(',', $this->_campos_lista)) + 2;
         $resultado = [];
 
-        $sql .= $filtros . $whereNomes . $this->getOrderby() . $this->getLimite();
+        $sql .= $filtros . $this->getOrderby() . $this->getLimite();
 
         $this->_total = $db->CampoUnico("SELECT COUNT(0) FROM {$this->_tabela} {$filtros}");
 

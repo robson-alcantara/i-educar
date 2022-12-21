@@ -4,6 +4,9 @@ namespace iEducar\Modules\Enrollments\Model;
 
 class EnrollmentStatusFilter
 {
+    public const EXCEPT_TRANSFERRED_OR_ABANDONMENT = 9;
+    public const ALL = 10;
+
     public static function getDescriptiveValues()
     {
         return [
@@ -14,12 +17,11 @@ class EnrollmentStatusFilter
             5 => 'Reclassificado',
             6 => 'Abandono',
             9 => 'Exceto Transferidos/Abandono',
-            10 => 'Todas',
+            self::ALL => 'Todas',
             12 => 'Aprovado com dependência',
             13 => 'Aprovado pelo conselho',
             14 => 'Reprovado por faltas',
             15 => 'Falecido'
         ];
     }
-
 }

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App_Model_MatriculaSituacao;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -12,14 +13,18 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 /**
  * LegacyRegistration
  *
- * @property int $id
- * @property boolean isTransferred
- * @property boolean isAbandoned
- * @property LegacyStudentAbsence studentAbsence
- * @property LegacyStudentScore studentScore
- * @property LegacyStudentDescriptive studentDescriptive
- * @property LegacyCourse course
- *
+ * @property integer              $id
+ * @property boolean              $isTransferred
+ * @property boolean              $isAbandoned
+ * @property boolean              $isCanceled
+ * @property boolean              $bloquear_troca_de_situacao
+ * @property boolean              $dependencia
+ * @property integer              $cod_matricula
+ * @property integer              $ano
+ * @property LegacyStudentAbsence $studentAbsence
+ * @property LegacyStudentScore   $studentScore
+ * @property LegacyCourse         $course
+ * @property Collection           $enrollments
  */
 class LegacyRegistration extends Model
 {
@@ -48,7 +53,8 @@ class LegacyRegistration extends Model
         'ativo',
         'aprovado',
         'data_matricula',
-        'ultima_matricula'
+        'ultima_matricula',
+        'bloquear_troca_de_situacao'
     ];
 
     /**
@@ -69,6 +75,11 @@ class LegacyRegistration extends Model
     public function getIdAttribute()
     {
         return $this->cod_matricula;
+    }
+
+    public function isLockedToChangeStatus(): bool
+    {
+        return $this->bloquear_troca_de_situacao;
     }
 
     /**
@@ -109,10 +120,11 @@ class LegacyRegistration extends Model
 
     /**
      * Relação com a série.
-     * @return BelongsTo
      *
      * @deprecated
      * @see grade()
+     *
+     * @return BelongsTo
      */
     public function level()
     {
@@ -182,7 +194,7 @@ class LegacyRegistration extends Model
      */
     public function scopeActive($query)
     {
-        return $query->where('ativo', 1);
+        return $query->where('matricula.ativo', 1);
     }
 
     public function getIsTransferredAttribute()
@@ -193,6 +205,11 @@ class LegacyRegistration extends Model
     public function getIsAbandonedAttribute()
     {
         return $this->aprovado == App_Model_MatriculaSituacao::ABANDONO;
+    }
+
+    public function getIsCanceledAttribute()
+    {
+        return $this->ativo === 0;
     }
 
     /**
@@ -248,6 +265,32 @@ class LegacyRegistration extends Model
      */
     public function getStatusDescriptionAttribute()
     {
-        return (new RegistrationStatus)->getDescriptiveValues()[(int) $this->aprovado];
+        return (new RegistrationStatus())->getDescriptiveValues()[(int) $this->aprovado];
+    }
+
+    public function scopeMale(Builder $query): Builder
+    {
+        return $query->join('pmieducar.aluno', 'aluno.cod_aluno', '=', 'matricula.ref_cod_aluno')
+            ->join('cadastro.fisica', 'aluno.ref_idpes', '=', 'fisica.idpes')
+            ->where('aluno.ativo', 1)
+            ->where('sexo', 'M');
+    }
+
+    public function scopeFemale(Builder $query): Builder
+    {
+        return $query->join('pmieducar.aluno', 'aluno.cod_aluno', '=', 'matricula.ref_cod_aluno')
+            ->join('cadastro.fisica', 'aluno.ref_idpes', '=', 'fisica.idpes')
+            ->where('aluno.ativo', 1)
+            ->where('sexo', 'F');
+    }
+
+    public function scopeLastYear(Builder $query): Builder
+    {
+        return $query->where('matricula.ano', date('Y') - 1);
+    }
+
+    public function scopeCurrentYear(Builder $query): Builder
+    {
+        return $query->where('matricula.ano', date('Y'));
     }
 }

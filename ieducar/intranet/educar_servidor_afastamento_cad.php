@@ -1,37 +1,14 @@
 <?php
 
-use App\Services\FileService;
 use App\Models\EmployeeWithdrawal;
+use App\Services\FileService;
 use App\Services\UrlPresigner;
 use App\Support\View\Employee\EmployeeReturn;
+use Illuminate\Support\Carbon;
 
-require_once 'include/clsBase.inc.php';
-require_once 'include/clsCadastro.inc.php';
-require_once 'include/clsBanco.inc.php';
-require_once 'include/pmieducar/geral.inc.php';
+return new class extends clsCadastro {
 
-class clsIndexBase extends clsBase
-{
-    public function Formular()
-    {
-        $this->SetTitulo($this->_instituicao . ' Servidores - Servidor Afastamento');
-        $this->processoAp = '635';
-    }
-}
-
-class indice extends clsCadastro
-{
-
-  /**
-   * Referência a usuário da sessão
-   *
-   * @var int
-   */
     public $pessoa_logada = null;
-
-    /**
-     * Atributos de mapeamento dos campos de banco de dados
-     */
     public $id = null;
     public $ref_cod_servidor = null;
     public $sequencial = null;
@@ -47,21 +24,15 @@ class indice extends clsCadastro
     public $status = null;
     public $alocacao_array = null;
     public $parametros = null;
-
-    /**
-     * Dias da semana
-     *
-     * @var array
-     */
     public $dias_da_semana = [
         '' => 'Selecione',
         1  => 'Domingo',
         2  => 'Segunda',
-        3  => 'Ter&ccedil;a',
+        3  => 'Terça',
         4  => 'Quarta',
         5  => 'Quinta',
         6  => 'Sexta',
-        7  => 'S&aacute;bado'
+        7  => 'Sábado'
     ];
 
     /**
@@ -86,10 +57,10 @@ class indice extends clsCadastro
         );
 
         $obj_permissoes = new clsPermissoes();
-        $obj_permissoes->permissao_cadastra(635, $this->pessoa_logada, 7, $urlPemite);
+        $obj_permissoes->permissao_cadastra(635, $this->pessoa_logada, 7, $urlPermite);
 
         if (is_numeric($this->ref_cod_servidor) && is_numeric($this->sequencial) &&
-        is_numeric($this->ref_cod_instituicao)) {
+            is_numeric($this->ref_cod_instituicao)) {
             $obj = new clsPmieducarServidorAfastamento(
                 $this->ref_cod_servidor,
                 $this->sequencial,
@@ -199,7 +170,7 @@ class indice extends clsCadastro
         }
 
         // Se edição, mostra campo para entrar com data de retorno
-        if ($this->retornar_servidor == EmployeeReturn::SIM) {
+        if ($this->retornar_servidor == EmployeeReturn::SIM || $this->data_retorno) {
             $this->campoData('data_retorno', 'Data de Retorno', $this->data_retorno, false);
         }
 
@@ -261,7 +232,7 @@ class indice extends clsCadastro
 
                 if ($lista) {
 
-          // Passa todos os valores obtidos no registro para atributos do objeto
+                    // Passa todos os valores obtidos no registro para atributos do objeto
                     foreach ($lista as $campo => $val) {
                         $temp = [];
                         $temp['hora_inicial']       = $val['hora_inicial'];
@@ -270,14 +241,14 @@ class indice extends clsCadastro
                         $temp['ref_cod_escola']     = $val['ref_cod_escola'];
                         $temp['ref_cod_disciplina'] = $val['ref_cod_disciplina'];
                         $temp['ref_cod_substituto'] = $val['ref_servidor_substituto'];
-                        $objTemp = new ClsPmieducarSerie($val['ref_cod_serie']);
+                        $objTemp = new clsPmieducarSerie($val['ref_cod_serie']);
                         $detalheTemp = $objTemp->detalhe();
                         $temp['ref_cod_curso']      = $detalheTemp['ref_cod_curso'];
                         $this->alocacao_array[]     = $temp;
                     }
 
                     if ($this->alocacao_array) {
-                        $tamanho = sizeof($alocacao);
+                        $tamanho = count($this->alocacao_array);
                         $script  = "<script>\nvar num_alocacao = {$tamanho};\n";
                         $script .= "var array_servidores = Array();\n";
 
@@ -405,7 +376,7 @@ class indice extends clsCadastro
         }
 
         if ($this->retornar_servidor != EmployeeReturn::SIM) {
-            $fileService = new FileService(new UrlPresigner);
+            $fileService = new FileService(new UrlPresigner());
             $files = $fileService->getFiles(EmployeeWithdrawal::find($this->id));
             $this->addHtml(view('uploads.upload', ['files' => $files])->render());
         }
@@ -502,7 +473,7 @@ class indice extends clsCadastro
 
                         // Caso a atualização não tenha sucesso
                         if (!$obj_horario->edita()) {
-                            $this->mensagem = 'Cadastro n&atilde;o realizado.<br>';
+                            $this->mensagem = 'Cadastro não realizado.<br>';
 
                             return false;
                         }
@@ -513,12 +484,12 @@ class indice extends clsCadastro
                 $this->simpleRedirect("educar_servidor_det.php?cod_servidor={$this->ref_cod_servidor}&ref_cod_instituicao={$this->ref_cod_instituicao}");
             }
         } else {
-            $this->mensagem = 'Cadastro n&atilde;o realizado.<br>';
+            $this->mensagem = 'Cadastro não realizado.<br>';
 
             return false;
         }
 
-        $fileService = new FileService(new UrlPresigner);
+        $fileService = new FileService(new UrlPresigner());
 
         if ($this->file_url) {
             $newFiles = json_decode($this->file_url);
@@ -548,6 +519,19 @@ class indice extends clsCadastro
 
         $obj_permissoes = new clsPermissoes();
         $obj_permissoes->permissao_cadastra(635, $this->pessoa_logada, 7, $urlPermite);
+        $exitDate = $this->data_saida ? dataToBanco(str_replace('%2F','/', $this->data_saida)) : $this->data_saida;
+        $returnDate = $this->data_retorno ? dataToBanco($this->data_retorno) : $this->data_retorno;
+
+        if($exitDate && $returnDate){
+            $exitDate = Carbon::createFromFormat('Y-m-d',$exitDate);
+            $returnDate = Carbon::createFromFormat('Y-m-d',$returnDate);
+            if(!$this->validateDates($exitDate, $returnDate)){
+                $this->mensagem = 'A data de retorno não pode ser inferior à data de afastamento.';
+                return false;
+            }
+            $exitDate = $exitDate->format('Y-m-d');
+            $returnDate = $returnDate->format('Y-m-d');
+        }
 
         $obj = new clsPmieducarServidorAfastamento(
             $this->ref_cod_servidor,
@@ -557,8 +541,8 @@ class indice extends clsCadastro
             null,
             null,
             null,
-            dataToBanco($this->data_retorno),
-            (int)($this->retornar_servidor == EmployeeReturn::SIM) ?: dataToBanco($this->data_saida),
+            $returnDate,
+            (int)($this->retornar_servidor == EmployeeReturn::SIM) ?: $exitDate,
             (int)($this->retornar_servidor == EmployeeReturn::SIM) ? 0 : null,
             $this->ref_cod_instituicao
         );
@@ -613,7 +597,7 @@ class indice extends clsCadastro
                         );
 
                         if (!$obj_horario->edita()) {
-                            $this->mensagem = 'Cadastro n&atilde;o realizado.<br>';
+                            $this->mensagem = 'Cadastro não realizado.<br>';
 
                             return false;
                         }
@@ -621,7 +605,7 @@ class indice extends clsCadastro
                 }
             }
 
-            $fileService = new FileService(new UrlPresigner);
+            $fileService = new FileService(new UrlPresigner());
 
             if ($this->file_url) {
                 $newFiles = json_decode($this->file_url);
@@ -642,11 +626,11 @@ class indice extends clsCadastro
                 $fileService->deleteFiles($deletedFiles);
             }
 
-            $this->mensagem .= 'Edi&ccedil;&atilde;o efetuada com sucesso.<br>';
+            $this->mensagem .= 'Edição efetuada com sucesso.<br>';
             $this->simpleRedirect("educar_servidor_det.php?cod_servidor={$this->ref_cod_servidor}&ref_cod_instituicao={$this->ref_cod_instituicao}");
         }
 
-        $this->mensagem = 'Edi&ccedil;&atilde;o n&atilde;o realizada.<br>';
+        $this->mensagem = 'Edição não realizada.<br>';
 
         return false;
     }
@@ -684,53 +668,28 @@ class indice extends clsCadastro
         $excluiu = $obj->excluir();
 
         if ($excluiu) {
-            $this->mensagem .= 'Exclus&atilde;o efetuada com sucesso.<br>';
+            $this->mensagem .= 'Exclusão efetuada com sucesso.<br>';
             $this->simpleRedirect('educar_servidor_afastamento_lst.php');
         }
 
-        $this->mensagem = 'Exclus&atilde;o n&atilde;o realizada.<br>';
+        $this->mensagem = 'Exclusão não realizada.<br>';
 
         return false;
     }
-}
 
-// Instancia objeto de página
-$pagina = new clsIndexBase();
-
-// Instancia objeto de conteúdo
-$miolo = new indice();
-
-// Atribui o conteúdo à página
-$pagina->addForm($miolo);
-
-// Gera o código HTML
-$pagina->MakeAll();
-?>
-
-<script type="text/javascript">
-if (document.getElementById('btn_enviar')) {
-  document.getElementById('btn_enviar').onclick = function() { validaFormulario(); }
-}
-
-function validaFormulario() {
-  var c    = 0;
-  var loop = true;
-
-  do {
-    if (document.getElementById('ref_cod_servidor_substituto_' + c + '_')) {
-      if (document.getElementById('ref_cod_servidor_substituto_' + c + '_').value == '') {
-        alert('Você deve informar um substituto para cada horário.');
-
-        return;
-      }
-    }
-    else {
-      loop = false;
+    public function makeExtra()
+    {
+        return file_get_contents(__DIR__ . '/scripts/extra/educar-servidor-afastamento-cad.js');
     }
 
-    c++;
-  } while (loop);
+    public function Formular()
+    {
+        $this->title = 'Servidores - Servidor Afastamento';
+        $this->processoAp = '635';
+    }
 
-  acao();
-}
-</script>
+    private function validateDates(Carbon $exitDate, Carbon $returnDate)
+    {
+        return $returnDate->gte($exitDate);
+    }
+};

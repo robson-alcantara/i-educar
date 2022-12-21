@@ -1,10 +1,7 @@
 <?php
 
 use iEducar\Modules\EvaluationRules\Models\ParallelRemedialCalculationType;
-
-require_once 'Core/Controller/Page/EditController.php';
-require_once 'RegraAvaliacao/Model/RegraDataMapper.php';
-require_once 'RegraAvaliacao/Model/RegraRecuperacaoDataMapper.php';
+use Illuminate\Support\Facades\DB;
 
 class EditController extends Core_Controller_Page_EditController
 {
@@ -111,6 +108,14 @@ class EditController extends Core_Controller_Page_EditController
             'label' => 'Nota mínima geral',
             'help' => 'Informe o valor mínimo para notas no geral'
         ],
+        'faltaMaximaGeral' => [
+            'label' => 'Falta máxima geral',
+            'help' => 'Informe o valor máximo para faltas no geral'
+        ],
+        'faltaMinimaGeral' => [
+            'label' => 'Falta mínima geral',
+            'help' => 'Informe o valor mínimo para faltas no geral'
+        ],
         'notaMaximaExameFinal' => [
             'label' => 'Nota máxima exame final',
             'help' => 'Informe o valor máximo para nota do exame final'
@@ -208,7 +213,7 @@ class EditController extends Core_Controller_Page_EditController
             this.getTabelasArredondamento = function(docObj, tipoNota) {
                 tabela_arredondamento.docObj = docObj;
                 var xml = new ajax(tabela_arredondamento.parseResponse);
-                xml.envia("/modules/TabelaArredondamento/Views/TabelaTipoNotaAjax.php?tipoNota=" + tipoNota);
+                xml.envia("modules/TabelaArredondamento/Views/TabelaTipoNotaAjax.php?tipoNota=" + tipoNota);
             };
 
             this.parseResponse = function() {
@@ -591,6 +596,26 @@ class EditController extends Core_Controller_Page_EditController
         );
 
         $this->campoNumero(
+            'faltaMaximaGeral',
+            $this->_getLabel('faltaMaximaGeral'),
+            $this->getEntity()->faltaMaximaGeral,
+            4,
+            4,
+            true,
+            $this->_getHelp('faltaMaximaGeral')
+        );
+
+        $this->campoNumero(
+            'faltaMinimaGeral',
+            $this->_getLabel('faltaMinimaGeral'),
+            $this->getEntity()->faltaMinimaGeral,
+            4,
+            4,
+            true,
+            $this->_getHelp('faltaMinimaGeral')
+        );
+
+        $this->campoNumero(
             'notaMaximaExameFinal',
             $this->_getLabel('notaMaximaExameFinal'),
             $this->getEntity()->notaMaximaExameFinal,
@@ -775,7 +800,9 @@ class EditController extends Core_Controller_Page_EditController
                 $this->getEntity()
             );
 
-            for ($i = 0, $loop = count($recuperacoes); $i < ($loop == 0 ? 5 : $loop + 3); $i++) {
+            $quantidadeRecuperacoes = is_array($recuperacoes) ? count($recuperacoes) : 0;
+
+            for ($i = 0, $loop = $quantidadeRecuperacoes; $i < ($loop == 0 ? 5 : $loop + 3); $i++) {
                 $recuperacao = $recuperacoes[$i];
 
                 $recuperacaoLabel = sprintf('recuperacao[label][%d]', $i);
@@ -940,7 +967,7 @@ class EditController extends Core_Controller_Page_EditController
         $recuperacoes = $this->getRequest()->recuperacao;
 
         // A contagem usa um dos índices do formulário, senão ia contar sempre 4.
-        $loop = count($recuperacoes['id']);
+        $loop = is_array($recuperacoes['id']) ? count($recuperacoes['id']) : 0;
 
         // Array de objetos a persistir
         $insert = [];
@@ -976,28 +1003,33 @@ class EditController extends Core_Controller_Page_EditController
                 }
             }
         }
-
-        // Persiste
-        foreach ($insert as $regraRecuperacao) {
-            // Atribui uma tabela de arredondamento a instância de tabela valor
-            $regraRecuperacao->regraAvaliacao = $entity;
-
-            if ($regraRecuperacao->isValid()) {
-                $this->getDataMapper()
-                    ->getRegraRecuperacaoDataMapper()
-                    ->save($regraRecuperacao);
-            } else {
-                $this->mensagem .= 'Erro no formulário';
-
-                return false;
-            }
-        }
-
         try {
-            $entity = $this->getDataMapper()->save($this->getEntity());
+            DB::beginTransaction();
+
+            if (isset($entity)) {
+                $this->getDataMapper()->save($this->getEntity());
+                $regraAvaliacaoId = $entity->id;
+            } else {
+                $entity = $this->getDataMapper()->save($this->getEntity());
+                $regraAvaliacaoId = $entity->fetch()['id'];
+            }
+            // Persiste
+            foreach ($insert as $regraRecuperacao) {
+                // Atribui uma tabela de arredondamento a instância de tabela valor
+                $regraRecuperacao->regraAvaliacao = $regraAvaliacaoId;
+
+                if ($regraRecuperacao->isValid()) {
+                    $this->getDataMapper()
+                        ->getRegraRecuperacaoDataMapper()
+                        ->save($regraRecuperacao);
+                } else {
+                    throw new Exception('Erro no preenchimento dos campos de Recuperações específicas.');
+                }
+            }
+            DB::commit();
         } catch (Exception $e) {
-            // TODO: ver @todo do docblock
-            $this->mensagem .= 'Erro no preenchimento do formulário. ';
+            $this->mensagem .= 'Erro no preenchimento do formulário. '.$e->getMessage();
+            DB::rollBack();
 
             return false;
         }

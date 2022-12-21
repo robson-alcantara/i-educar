@@ -1,10 +1,5 @@
 <?php
 
-require_once 'Core/Controller/Page/EditController.php';
-require_once 'TabelaArredondamento/Model/TabelaDataMapper.php';
-require_once 'TabelaArredondamento/Model/TabelaValor.php';
-require_once 'TabelaArredondamento/Model/TipoArredondamentoMedia.php';
-
 class EditController extends Core_Controller_Page_EditController
 {
     protected $_dataMapper = 'TabelaArredondamento_Model_TabelaDataMapper';
@@ -13,6 +8,8 @@ class EditController extends Core_Controller_Page_EditController
     protected $_nivelAcessoOption = App_Model_NivelAcesso::INSTITUCIONAL;
     protected $_saveOption = true;
     protected $_deleteOption = false;
+    protected $valor_minimo = [];
+    protected $valor_maximo = [];
 
     protected $_formMap = [
         'instituicao' => [
@@ -349,25 +346,12 @@ class EditController extends Core_Controller_Page_EditController
 
         for ($i = 0; $i <= 9; $i++) {
             $valorNota = $valores[$i];
-            $acao = 0;
-
-            switch ($valorNota->acao) {
-                case 'Arredondar para o n&uacute;mero inteiro imediatamente inferior':
-                    $acao = 1;
-                    break;
-
-                case 'Arredondar para o n&uacute;mero inteiro imediatamente superior':
-                    $acao = 2;
-                    break;
-
-                case 'Arredondar para a casa decimal espec&iacute;fica':
-                    $acao = 3;
-                    break;
-
-                default:
-                    $acao = 0;
-                    break;
-            }
+            $acao = match ($valorNota->acao) {
+                'Arredondar para o número inteiro imediatamente inferior' => 1,
+                'Arredondar para o número inteiro imediatamente superior' => 2,
+                'Arredondar para a casa decimal específica' => 3,
+                default => 0,
+            };
 
             $this->tabela_arredondamento_valor[$i][] = $valorNota->id;
             $this->tabela_arredondamento_valor[$i][] = $i;
@@ -484,7 +468,7 @@ class EditController extends Core_Controller_Page_EditController
         }
 
         // A contagem usa um dos índices do formulário, senão ia contar sempre 4.
-        $loop = count($this->valor_id);
+        $loop = is_array($this->valor_id) ? count($this->valor_id) : 0;
 
         // Verifica se existe valor acima de 100
         for ($i = 0; $i < $loop; $i++) {
@@ -579,6 +563,7 @@ class EditController extends Core_Controller_Page_EditController
 
         if ($repeatedValues) {
             $this->mensagem = 'Erro no formulário. Os valores devem ser diferentes entre os tipos de conceitos.';
+
             return false;
         }
 
@@ -586,15 +571,16 @@ class EditController extends Core_Controller_Page_EditController
         ksort($values);
         $prevMax = -1;
 
-        foreach ($values as $minValue => $maxValue){
-
+        foreach ($values as $minValue => $maxValue) {
             if ($minValue > $maxValue) {
                 $this->mensagem = 'Erro no formulário. Valor mínimo não pode ser maior que valor máximo dentro do mesmo conceito.';
+
                 return false;
             }
 
             if ($minValue <= $prevMax) {
                 $this->mensagem = 'Erro no formulário. Números preenchidos fora do alcance.';
+
                 return false;
             }
 

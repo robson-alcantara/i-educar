@@ -2,8 +2,6 @@
 
 use iEducar\Legacy\Model;
 
-require_once 'include/pmieducar/geral.inc.php';
-
 class clsPmieducarCategoriaAcervo extends Model
 {
     public $id;
@@ -48,6 +46,7 @@ class clsPmieducarCategoriaAcervo extends Model
     public function listaCategoriasPorObra($acervoId)
     {
         $db = new clsBanco();
+        $resultado = [];
         $db->Consulta("SELECT pmieducar.relacao_categoria_acervo.*,
                               categoria_obra.descricao as descricao
                          FROM pmieducar.acervo

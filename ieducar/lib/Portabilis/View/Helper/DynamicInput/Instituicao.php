@@ -1,7 +1,5 @@
 <?php
 
-require_once 'lib/Portabilis/View/Helper/DynamicInput/CoreSelect.php';
-
 class Portabilis_View_Helper_DynamicInput_Instituicao extends Portabilis_View_Helper_DynamicInput_CoreSelect
 {
     protected function inputValue($value = null)
@@ -22,12 +20,12 @@ class Portabilis_View_Helper_DynamicInput_Instituicao extends Portabilis_View_He
             $resources = App_Model_IedFinder::getInstituicoes();
         }
 
-        return $this->insertOption(null, 'Selecione uma institui&ccedil;&atilde;o', $resources);
+        return $this->insertOption(null, 'Selecione uma instituição', $resources);
     }
 
     protected function defaultOptions()
     {
-        return ['options' => ['label' => 'Institui&ccedil;&atilde;o']];
+        return ['options' => ['label' => 'Instituição']];
     }
 
     public function selectInput($options = [])

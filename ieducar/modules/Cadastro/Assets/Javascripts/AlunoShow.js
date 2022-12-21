@@ -13,7 +13,7 @@ function fixupTabelaMatriculas() {
   $j('<th>').html('Ano').appendTo($tr);
   $j('<th>').html(stringUtils.toUtf8('Situação')).appendTo($tr);
   $j('<th>').html('Turma').appendTo($tr);
-  $j('<th>').html('Enturma\u00e7\u00e3o anterior').appendTo($tr);
+  $j('<th>').html('Enturmação anterior').appendTo($tr);
   $j('<th>').html(stringUtils.toUtf8('Série')).appendTo($tr);
   $j('<th>').html('Curso').appendTo($tr);
   $j('<th>').html('Escola').appendTo($tr);
@@ -36,6 +36,9 @@ var handleGetMatriculas = function(dataResponse) {
   try{
     handleMessages(dataResponse.msgs);
 
+    $j('#matriculas').remove();
+
+    fixupTabelaMatriculas();
 
     var $matriculasTable      = $j('#matriculas');
     var transferenciaEmAberto = false;
@@ -177,6 +180,7 @@ function onSituacaoChange(matricula_id, novaSituacao){
 
 var handlePostSituacao = function(dataresponse){
   handleMessages(dataresponse.msgs);
+  getMatriculas();
 }
 
 function onDataEntradaChange(matricula_id, key, campo){
@@ -203,25 +207,35 @@ var handlePostDataEntrada = function(dataresponse){
 
 function onDataSaidaChange(matricula_id, key, campo){
 
-  if(key.keyCode == 13 || key.keyCode == 9 || (typeof key.keyCode == "undefined")){
-    var data = {
+  if((key.keyCode == 13 || key.keyCode == 9 || (typeof key.keyCode == "undefined")) && campo.val() !== ''){
+    const data = {
       matricula_id : matricula_id,
       data_saida : campo.val()
     };
 
-    var options = {
+    const options = {
       url      : postResourceUrlBuilder.buildUrl('/module/Api/matricula', 'data-saida'),
       dataType : 'json',
       data     : data,
-      success  : handlePostDataSaida
+      success  : handlePostDataSaida,
+      beforeSend: function (){
+        modalLoadingUtils.show();
+      },
+      complete: function () {
+        modalLoadingUtils.hide();
+      }
     };
     postResource(options);
   }
 
 }
 
-var handlePostDataSaida = function(dataresponse){
-  handleMessages(dataresponse.msgs);
+const handlePostDataSaida = function(dataresponse){
+  if(dataresponse && dataresponse.any_error_msg) {
+    buildAlert(dataresponse.msgs[0].msg);
+  } else {
+    handleMessages(dataresponse.msgs);
+  }
 }
 
 var getMatriculas = function() {
@@ -237,6 +251,46 @@ var getMatriculas = function() {
   };
 
   getResource(options);
+}
+
+const buildAlert = function (msg) {
+  const modalSettings = {
+    content: msg,
+    title: 'Atenção!',
+    maxWidth: 860,
+    width: 860,
+    modal: true,
+    classes: {
+      "ui-dialog-titlebar": 'ui-state-error'
+    },
+    close: function () {
+      $j(this).dialog('destroy');
+      window.location.reload();
+    },
+    buttons: [{
+      text: 'Fechar',
+      click: function () {
+        $j(this).dialog("close");
+      }
+    }]
+  }
+
+  let container = $j('#dialog-container');
+
+  if (container.length < 1) {
+    $j('body').append('<div id="dialog-container" style="width: 500px;"></div>');
+    container = $j('#dialog-container');
+  }
+
+  if (container.hasClass('ui-dialog-content')) {
+    container.dialog('destroy');
+  }
+
+  container.empty();
+  container.html(modalSettings.content);
+
+  delete modalSettings['content'];
+  container.dialog(modalSettings);
 }
 
 $j('.tableDetalheLinhaSeparador').closest('tr').attr('id','stop');

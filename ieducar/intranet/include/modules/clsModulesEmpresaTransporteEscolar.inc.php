@@ -1,9 +1,6 @@
 <?php
 
 use iEducar\Legacy\Model;
-use Illuminate\Support\Facades\Session;
-
-require_once 'include/pmieducar/geral.inc.php';
 
 class clsModulesEmpresaTransporteEscolar extends Model
 {
@@ -11,7 +8,6 @@ class clsModulesEmpresaTransporteEscolar extends Model
     public $ref_idpes;
     public $ref_resp_idpes;
     public $observacao;
-    public $pessoa_logada;
 
     public function __construct(
         $cod_empresa_transporte_escolar = null,
@@ -22,8 +18,6 @@ class clsModulesEmpresaTransporteEscolar extends Model
         $db = new clsBanco();
         $this->_schema = 'modules.';
         $this->_tabela = "{$this->_schema}empresa_transporte_escolar";
-
-        $this->pessoa_logada = Session::get('id_pessoa');
 
         $this->_campos_lista = $this->_todos_campos = ' cod_empresa_transporte_escolar, ref_idpes, ref_resp_idpes, observacao ';
 
@@ -100,6 +94,7 @@ class clsModulesEmpresaTransporteEscolar extends Model
     {
         if (is_numeric($this->cod_empresa_transporte_escolar)) {
             $db = new clsBanco();
+            $gruda = '';
             $set = '';
 
             if (is_numeric($this->ref_idpes)) {
@@ -118,7 +113,7 @@ class clsModulesEmpresaTransporteEscolar extends Model
                 $gruda = ', ';
             }
             if ($set) {
-                $detalheAntigo = $this->detalhe();
+                $this->detalhe();
                 $db->Consulta("UPDATE {$this->_tabela} SET $set WHERE cod_empresa_transporte_escolar = '{$this->cod_empresa_transporte_escolar}'");
 
                 return true;

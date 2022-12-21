@@ -2,8 +2,6 @@
 
 use iEducar\Legacy\Model;
 
-require_once 'include/pmieducar/geral.inc.php';
-
 class clsPmieducarCandidatoReservaVaga extends Model
 {
     public $cod_candidato_reserva_vaga;
@@ -229,8 +227,8 @@ class clsPmieducarCandidatoReservaVaga extends Model
     {
         if (is_numeric($this->cod_candidato_reserva_vaga)) {
             $db = new clsBanco();
-            $set = '';
             $gruda = '';
+            $set = '';
             $campos = '';
 
             if (is_numeric($this->ano_letivo)) {
@@ -658,7 +656,7 @@ class clsPmieducarCandidatoReservaVaga extends Model
         }
 
         $situacao = $situacao ?: 'NULL';
-        $motivo = str_replace("\'", "''", addslashes($motivo)) ?: null;
+        $motivo = str_replace("\'", '\'\'', addslashes($motivo)) ?: null;
         if ($data) {
             $data = "data_solicitacao = to_date('{$data}','DD-MM-YYYY'),";
         }

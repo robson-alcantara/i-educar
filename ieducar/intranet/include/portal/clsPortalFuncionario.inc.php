@@ -2,8 +2,6 @@
 
 use iEducar\Legacy\Model;
 
-require_once 'include/portal/geral.inc.php';
-
 class clsPortalFuncionario extends Model
 {
     public $ref_cod_pessoa_fj;
@@ -273,6 +271,7 @@ class clsPortalFuncionario extends Model
     {
         if (is_numeric($this->ref_cod_pessoa_fj)) {
             $db = new clsBanco();
+            $gruda = '';
             $set = '';
 
             if (is_string($this->matricula)) {

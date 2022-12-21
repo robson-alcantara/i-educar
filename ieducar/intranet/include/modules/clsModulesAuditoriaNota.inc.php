@@ -2,8 +2,6 @@
 
 use Illuminate\Support\Facades\Auth;
 
-require_once 'include/pmieducar/geral.inc.php';
-
 class clsModulesAuditoriaNota
 {
     public $notaAntiga;
@@ -49,6 +47,7 @@ class clsModulesAuditoriaNota
         $this->_tabela = "{$this->_schema}auditoria";
         $separador = '';
         $valores = '';
+        $campos = '';
 
         if (!is_null($this->stringNotaAntiga) && !is_null($this->stringNotaNova)) {
             $this->operacao = self::OPERACAO_ALTERACAO;
@@ -229,11 +228,8 @@ class clsModulesAuditoriaNota
 
         $objPessoa = new clsPessoa_($pessoaId);
         $detPessoa = $objPessoa->detalhe();
-        $nomePessoa = $detPessoa['nome'];
 
-        $nomePessoa = Portabilis_String_Utils::toLatin1($nomePessoa);
-
-        return $nomePessoa;
+        return $detPessoa['nome'];
     }
 
     private function getNomeTurma($turmaId)

@@ -3,23 +3,23 @@
 namespace App\Models\Educacenso;
 
 use iEducar\Modules\Educacenso\Model\AreasExternas;
-use iEducar\Modules\Educacenso\Model\LocalFuncionamento;
-use iEducar\Modules\Educacenso\Model\TratamentoLixo;
-use iEducar\Modules\Educacenso\Model\RecursosAcessibilidade;
-use iEducar\Modules\Educacenso\Model\UsoInternet;
+use iEducar\Modules\Educacenso\Model\Banheiros;
 use iEducar\Modules\Educacenso\Model\Dormitorios;
 use iEducar\Modules\Educacenso\Model\Equipamentos;
 use iEducar\Modules\Educacenso\Model\EquipamentosAcessoInternet;
 use iEducar\Modules\Educacenso\Model\InstrumentosPedagogicos;
-use iEducar\Modules\Educacenso\Model\ReservaVagasCotas;
-use iEducar\Modules\Educacenso\Model\RedeLocal;
-use iEducar\Modules\Educacenso\Model\SalasAtividades;
-use iEducar\Modules\Educacenso\Model\SalasGerais;
-use iEducar\Modules\Educacenso\Model\SalasFuncionais;
-use iEducar\Modules\Educacenso\Model\Banheiros;
 use iEducar\Modules\Educacenso\Model\Laboratorios;
+use iEducar\Modules\Educacenso\Model\LocalFuncionamento;
 use iEducar\Modules\Educacenso\Model\OrganizacaoEnsino;
 use iEducar\Modules\Educacenso\Model\OrgaosColegiados;
+use iEducar\Modules\Educacenso\Model\RecursosAcessibilidade;
+use iEducar\Modules\Educacenso\Model\RedeLocal;
+use iEducar\Modules\Educacenso\Model\ReservaVagasCotas;
+use iEducar\Modules\Educacenso\Model\SalasAtividades;
+use iEducar\Modules\Educacenso\Model\SalasFuncionais;
+use iEducar\Modules\Educacenso\Model\SalasGerais;
+use iEducar\Modules\Educacenso\Model\TratamentoLixo;
+use iEducar\Modules\Educacenso\Model\UsoInternet;
 use iEducar\Modules\Educacenso\Validator\School\HasDifferentStepsOfChildEducationValidator;
 
 class Registro10 extends Registro10Fields
@@ -300,7 +300,7 @@ class Registro10 extends Registro10Fields
 
     /**
      * Sempre retona true quando alguma opção de banheiro for preenchida
-     * 
+     *
      * @return bool
      */
     public function banheirosBanheiro()
@@ -346,6 +346,14 @@ class Registro10 extends Registro10Fields
     public function laboratoriosInformatica()
     {
         return in_array(Laboratorios::INFORMATICA, $this->laboratorios);
+    }
+
+    /**
+     * @return bool
+     */
+    public function laboratoriosEducacaoProfissional()
+    {
+        return in_array(Laboratorios::EDUCACAO_PROFISSIONAL, $this->laboratorios);
     }
 
     /**
@@ -410,6 +418,14 @@ class Registro10 extends Registro10Fields
     public function salasAtividadesRepousoAluno()
     {
         return in_array(SalasAtividades::REPOUSO_ALUNO, $this->salasAtividades);
+    }
+
+    /**
+     * @return bool
+     */
+    public function salasAtividadesEducacaoProfissional()
+    {
+        return in_array(SalasAtividades::EDUCACAO_PROFISSIONAL, $this->salasAtividades);
     }
 
     /**
@@ -655,6 +671,17 @@ class Registro10 extends Registro10Fields
     /**
      * @return bool
      */
+    public function EquipamentosPreenchidosIncorretamente()
+    {
+        return (
+            in_array(Equipamentos::NENHUM_EQUIPAMENTO_LISTADO, $this->equipamentos) &&
+            count($this->equipamentos) > 1
+        );
+    }
+
+    /**
+     * @return bool
+     */
     public function equipamentosAcessoInternetComputadorMesa()
     {
         return in_array(EquipamentosAcessoInternet::COMPUTADOR_MESA, $this->equipamentosAcessoInternet);
@@ -778,7 +805,6 @@ class Registro10 extends Registro10Fields
      */
     public function quantidadeProfissionaisPreenchida()
     {
-
         return $this->qtdSecretarioEscolar ||
             $this->qtdAuxiliarAdministrativo ||
             $this->qtdApoioPedagogico ||
@@ -794,6 +820,14 @@ class Registro10 extends Registro10Fields
             $this->qtdFonoaudiologo ||
             $this->qtdViceDiretor ||
             $this->qtdOrientadorComunitario;
+    }
+
+    /**
+     * @return bool
+     */
+    public function nenhumEquipamentoNaEscola()
+    {
+        return in_array(Equipamentos::NENHUM_EQUIPAMENTO_LISTADO, $this->equipamentos);
     }
 
     /**
@@ -909,6 +943,7 @@ class Registro10 extends Registro10Fields
     public function HasDifferentStepsOfChildEducation()
     {
         $hasDifferentStepsOfChildEducation = new HasDifferentStepsOfChildEducationValidator($this->codEscola);
+
         return $hasDifferentStepsOfChildEducation->isValid();
     }
 
@@ -971,6 +1006,25 @@ class Registro10 extends Registro10Fields
     /**
      * @return bool
      */
+    public function instrumentosPedagogicosMateriaisEducacaoProfissional()
+    {
+        return in_array(InstrumentosPedagogicos::MATERIAL_EDUCACAO_PROFISSIONAL, $this->instrumentosPedagogicos);
+    }
+
+    /**
+     * @return bool
+     */
+    public function instrumentosPedagogicosPreenchidosIncorretamente()
+    {
+        return (
+            in_array(InstrumentosPedagogicos::NENHUM_DOS_INSTRUMENTOS_LISTADOS, $this->instrumentosPedagogicos) &&
+            count($this->instrumentosPedagogicos) > 1
+        );
+    }
+
+    /**
+     * @return bool
+     */
     public function instrumentosPedagogicosMateriaisPraticaDesportiva()
     {
         return in_array(InstrumentosPedagogicos::MATERIAIS_PRATICA_DESPORTIVA, $this->instrumentosPedagogicos);
@@ -998,6 +1052,11 @@ class Registro10 extends Registro10Fields
     public function instrumentosPedagogicosMateriaisEducacaoCampo()
     {
         return in_array(InstrumentosPedagogicos::MATERIAIS_EDUCACAO_CAMPO, $this->instrumentosPedagogicos);
+    }
+
+    public function instrumentosPedagogicosNenhum()
+    {
+        return in_array(InstrumentosPedagogicos::NENHUM_DOS_INSTRUMENTOS_LISTADOS, $this->instrumentosPedagogicos);
     }
 
     /**

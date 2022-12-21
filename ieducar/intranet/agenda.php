@@ -1,53 +1,10 @@
 <?php
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-    *                                                                        *
-    *   @author Prefeitura Municipal de ItajaÃ­                              *
-    *   @updated 29/03/2007                                                  *
-    *   Pacote: i-PLB Software PÃºblico Livre e Brasileiro                   *
-    *                                                                        *
-    *   Copyright (C) 2006  PMI - Prefeitura Municipal de ItajaÃ­            *
-    *                       ctima@itajai.sc.gov.br                           *
-    *                                                                        *
-    *   Este  programa  Ã©  software livre, vocÃª pode redistribuÃ­-lo e/ou  *
-    *   modificÃ¡-lo sob os termos da LicenÃ§a PÃºblica Geral GNU, conforme  *
-    *   publicada pela Free  Software  Foundation,  tanto  a versÃ£o 2 da    *
-    *   LicenÃ§a   como  (a  seu  critÃ©rio)  qualquer  versÃ£o  mais  nova.     *
-    *                                                                        *
-    *   Este programa  Ã© distribuÃ­do na expectativa de ser Ãºtil, mas SEM  *
-    *   QUALQUER GARANTIA. Sem mesmo a garantia implÃ­cita de COMERCIALI-    *
-    *   ZAÃ‡ÃƒO  ou  de ADEQUAÃ‡ÃƒO A QUALQUER PROPÃ“SITO EM PARTICULAR. Con-    *
-    *   sulte  a  LicenÃ§a  PÃºblica  Geral  GNU para obter mais detalhes.   *
-    *                                                                        *
-    *   VocÃª  deve  ter  recebido uma cÃ³pia da LicenÃ§a PÃºblica Geral GNU     *
-    *   junto  com  este  programa. Se nÃ£o, escreva para a Free Software    *
-    *   Foundation,  Inc.,  59  Temple  Place,  Suite  330,  Boston,  MA     *
-    *   02111-1307, USA.                                                     *
-    *                                                                        *
-    * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\Auth;
 
-require_once('include/clsBase.inc.php');
-require_once('include/clsBanco.inc.php');
-require_once('include/clsAgenda.inc.php');
-//require_once ("include/juris/jurisGeral.inc.php");
-require_once('agenda_calendario.php');
-
-class clsIndex extends clsBase
-{
-    public function Formular()
-    {
-        $this->SetTitulo("{$this->_instituicao} Agenda Particular");
-        $this->processoAp = '0';
-        $this->addEstilo('agenda');
-        $this->addScript('agenda');
-    }
-}
-
-class indice extends clsCadastro
-{
+return new class extends clsCadastro {
     public $agenda;
     public $editor;
     public $compromissos;
@@ -67,7 +24,7 @@ class indice extends clsCadastro
         $db = new clsBanco();
         $db2 = new clsBanco();
         // inicializacao de variaveis
-        $this->editor = Session::get('id_pessoa');
+        $this->editor = Auth::id();
 
         Portabilis_View_Helper_Application::loadJavascript($this, '/intranet/scripts/agenda.js');
         Portabilis_View_Helper_Application::loadStylesheet($this, '/intranet/styles/agenda.css');
@@ -112,14 +69,14 @@ class indice extends clsCadastro
             EDITAR
         */
         if (isset($_POST['agenda_rap_id'])) {
-            $objAgenda->edita_compromisso($_POST['agenda_rap_id'], $_POST['agenda_rap_titulo'], $_POST['agenda_rap_conteudo'], $_POST['agenda_rap_data'], $_POST['agenda_rap_hora'], $_POST['agenda_rap_horafim'], $_POST['agenda_rap_publico'], $_POST['agenda_rap_importante']);
+            $objAgenda->edita_compromisso($_POST['agenda_rap_id'], pg_escape_string($_POST['agenda_rap_titulo']), pg_escape_string($_POST['agenda_rap_conteudo']), $_POST['agenda_rap_data'], $_POST['agenda_rap_hora'], $_POST['agenda_rap_horafim'], $_POST['agenda_rap_publico'], $_POST['agenda_rap_importante']);
         }
 
         /*
             INSERIR
         */
         if (isset($_POST['novo_hora_inicio'])) {
-            $objAgenda->cadastraCompromisso(false, $_POST['novo_titulo'], $_POST['novo_descricao'], $_POST['novo_data'], $_POST['novo_hora_inicio'], $_POST['novo_hora_fim'], $_POST['novo_publico'], $_POST['novo_importante'], $_POST['novo_repetir_dias'], $_POST['novo_repetir_qtd']);
+            $objAgenda->cadastraCompromisso(false, pg_escape_string($_POST['novo_titulo']), pg_escape_string($_POST['novo_descricao']), $_POST['novo_data'], $_POST['novo_hora_inicio'], $_POST['novo_hora_fim'], $_POST['novo_publico'], $_POST['novo_importante'], $_POST['novo_repetir_dias'], $_POST['novo_repetir_qtd']);
         }
 
         /*
@@ -157,8 +114,8 @@ class indice extends clsCadastro
         <div id="DOM_expansivel" class="DOM_expansivel"></div>
         <table border="0" cellpadding="0" cellspacing="3" width="100%">';
 
-        $mesesArr = [ '', 'Janeiro', 'Fevereiro', 'Mar&ccedil;o', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro' ];
-        $diasArr = [ 'Domingo', 'Segunda Feira', 'Ter&ccedil;a Feira', 'Quarta Feira', 'Quinta Feira', 'Sexta Feira', 'S&aacute;bado' ];
+        $mesesArr = [ '', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro' ];
+        $diasArr = [ 'Domingo', 'Segunda Feira', 'Terça Feira', 'Quarta Feira', 'Quinta Feira', 'Sexta Feira', 'Sábado' ];
 
         $this->arr_data_atual = [ date('d', $this->time_atual), date('n', $this->time_atual), date('Y', $this->time_atual), date('w', $this->time_atual) ];
         $amanhaArr = [ date('d', $this->time_amanha), date('n', $this->time_amanha), date('Y', $this->time_amanha), date('w', $this->time_amanha) ];
@@ -192,7 +149,7 @@ class indice extends clsCadastro
                                     </td>
                                     <td class=\"data-info\" title=\"Dia: {$this->arr_data_atual[0]} de {$mesesArr[$this->arr_data_atual[1]]} de {$this->arr_data_atual[2]}\" align=\"center\">
                                         <span class=\"data1\">{$this->arr_data_atual[0]}<br></span>
-                                        <span class=\"data2\">" . strtoupper(substr($mesesArr[$this->arr_data_atual[1]], 0, 3)) . "<br>
+                                        <span class=\"data2\">" . mb_strtoupper(substr($mesesArr[$this->arr_data_atual[1]], 0, 3)) . "<br>
                                         <span class=\"data3\">{$this->arr_data_atual[2]}</span></td>
                                     <td class=\"arrow-dia\" rowspan=\"2\" valign=\"middle\">
                                         <a href=\"{$this->scriptNome}?cod_agenda={$this->agenda}&time={$this->time_amanha}\">
@@ -380,13 +337,13 @@ class indice extends clsCadastro
 
             $classe = ($classe == 'claro') ? 'escuro': 'claro';
 
-            $conteudo .= "<tr><td colspan=\"3\" class=\"{$classe}\" align=\"center\" height=\"60\"><br><input type=\"button\" name=\"agenda_novo\" class=\"agenda_rap_botao\" id=\"agenda_novo\" value=\"Novo Compromisso\" onclick=\"novoForm();\"></td></tr>";
+            $conteudo .= "<tr><td colspan=\"3\" class=\"{$classe}\" align=\"center\" height=\"60\"><br><input type=\"button\" name=\"agenda_novo\" class=\"agenda_rap_botao btn-green\" id=\"agenda_novo\" value=\"Novo Compromisso\" onclick=\"novoForm();\"></td></tr>";
         } else {
             $this->versoes = $objAgenda->listaVersoes($_GET['versoes']);
 
             // verifica se o compromisso eh mesmo dessa agenda
             $db->Consulta("SELECT 1 FROM portal.agenda_compromisso WHERE ref_cod_agenda = '{$this->agenda}' AND cod_agenda_compromisso = '{$_GET['versoes']}'");
-            if ($db->Num_Linhas()) {
+            if ($db->numLinhas()) {
                 // seleciona as versoes desse compromisso
                 $db->Consulta("SELECT versao, ref_ref_cod_pessoa_cad, ativo, data_inicio, titulo, descricao, importante, publico, data_cadastro, data_fim FROM portal.agenda_compromisso WHERE cod_agenda_compromisso = '{$_GET['versoes']}' ORDER BY versao DESC");
                 while ($db->ProximoRegistro()) {
@@ -395,15 +352,15 @@ class indice extends clsCadastro
 
                     $nome = $db2->CampoUnico("SELECT nome FROM cadastro.pessoa WHERE idpes = '{$ref_ref_cod_pessoa_cad}'");
                     $ativo = ($ativo)? '<b>Ativo</b>': 'Inativo';
-                    $importante = ($importante)? 'Sim': 'N&atilde;o';
-                    $publico = ($publico)? 'Sim': 'N&atilde;o';
+                    $importante = ($importante)? 'Sim': 'Não';
+                    $publico = ($publico)? 'Sim': 'Não';
                     if ($data_fim) {
                         $data_fim = date('d/m/Y H:i', strtotime($data_fim));
                     } else {
-                        $data_fim = 'Este compromisso era uma Anota&ccedil;&atilde;o';
+                        $data_fim = 'Este compromisso era uma Anotação';
                     }
 
-                    $conteudo .= "<tr><td>Vers&atilde;o:</td><td>{$versao}</td></tr>\n";
+                    $conteudo .= "<tr><td>Versão:</td><td>{$versao}</td></tr>\n";
                     $conteudo .= "<tr><td>Titulo:</td><td>{$titulo}</td></tr>\n";
                     $conteudo .= '<tr><td>Inicio:</td><td>' . date('d/m/Y H:i', strtotime($data_inicio)) . "</td></tr>\n";
                     $conteudo .= "<tr><td>Fim:</td><td>{$data_fim}</td></tr>\n";
@@ -411,8 +368,8 @@ class indice extends clsCadastro
                     $conteudo .= "<tr><td>Status:</td><td>{$ativo}</td></tr>\n";
                     $conteudo .= "<tr><td>Importante:</td><td>{$importante}</td></tr>\n";
                     $conteudo .= "<tr><td>Publico:</td><td>{$publico}</td></tr>\n";
-                    $conteudo .= "<tr><td>Respons&aacute;vel:</td><td>$nome</td></tr>\n";
-                    $conteudo .= "<tr><td>Reativar?</td><td><a href=\"{$this->scriptNome}?cod_agenda={$this->agenda}&time={$this->time_atual}&restaura={$_GET['versoes']}&versao={$versao}\">Clique aqui para reativar esta vers&atilde;o</a></td></tr>\n";
+                    $conteudo .= "<tr><td>Responsável:</td><td>$nome</td></tr>\n";
+                    $conteudo .= "<tr><td>Reativar?</td><td><a href=\"{$this->scriptNome}?cod_agenda={$this->agenda}&time={$this->time_atual}&restaura={$_GET['versoes']}&versao={$versao}\">Clique aqui para reativar esta versão</a></td></tr>\n";
                     $conteudo .= "<tr><td colspan=\"2\"><hr></td></tr>\n";
                 }
                 $conteudo .= "<tr><td colspan=\"2\" align=\"center\"><input type=\"button\" name=\"voltar\" value=\"Voltar\" class=\"agenda_rap_botao\" onclick=\"document.location.href='{$this->scriptNome}?cod_agenda={$this->agenda}&time={$this->time_atual}'\"></td></tr>";
@@ -460,7 +417,7 @@ class indice extends clsCadastro
         $conteudo .= '</td>
             </tr>
             <tr>
-                <td align="center" class="escuro"><span class="titulo">Anota&ccedil;&otilde;es</span></td>
+                <td align="center" class="escuro"><span class="titulo">Anotações</span></td>
             </tr>
             <tr>
                 <td class="escuro" valign="top">
@@ -484,10 +441,10 @@ class indice extends clsCadastro
 
         return $conteudo;
     }
-}
-$pagina = new clsIndex();
 
-$miolo = new indice();
-$pagina->addForm($miolo);
-
-$pagina->MakeAll();
+    public function Formular()
+    {
+        $this->titulo = 'Agenda Particular';
+        $this->processoAp = '0';
+    }
+};

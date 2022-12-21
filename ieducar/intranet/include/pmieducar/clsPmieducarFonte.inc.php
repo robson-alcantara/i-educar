@@ -2,8 +2,6 @@
 
 use iEducar\Legacy\Model;
 
-require_once 'include/pmieducar/geral.inc.php';
-
 class clsPmieducarFonte extends Model
 {
     public $cod_fonte;
@@ -25,10 +23,10 @@ class clsPmieducarFonte extends Model
         $this->_campos_lista = $this->_todos_campos = 'cod_fonte, ref_usuario_exc, ref_usuario_cad, nm_fonte, descricao, data_cadastro, data_exclusao, ativo, ref_cod_biblioteca';
 
         if (is_numeric($ref_usuario_cad)) {
-                    $this->ref_usuario_cad = $ref_usuario_cad;
+            $this->ref_usuario_cad = $ref_usuario_cad;
         }
         if (is_numeric($ref_usuario_exc)) {
-                    $this->ref_usuario_exc = $ref_usuario_exc;
+            $this->ref_usuario_exc = $ref_usuario_exc;
         }
 
         if (is_numeric($cod_fonte)) {
@@ -114,6 +112,7 @@ class clsPmieducarFonte extends Model
     {
         if (is_numeric($this->cod_fonte) && is_numeric($this->ref_usuario_exc)) {
             $db = new clsBanco();
+            $gruda = '';
             $set = '';
 
             if (is_numeric($this->ref_usuario_exc)) {

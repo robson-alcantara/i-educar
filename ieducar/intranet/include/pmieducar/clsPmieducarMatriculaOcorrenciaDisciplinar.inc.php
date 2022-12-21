@@ -2,8 +2,6 @@
 
 use iEducar\Legacy\Model;
 
-require_once 'include/pmieducar/geral.inc.php';
-
 class clsPmieducarMatriculaOcorrenciaDisciplinar extends Model
 {
     public $ref_cod_matricula;
@@ -26,16 +24,16 @@ class clsPmieducarMatriculaOcorrenciaDisciplinar extends Model
         $this->_campos_lista = $this->_todos_campos = 'ref_cod_matricula, ref_cod_tipo_ocorrencia_disciplinar, sequencial, ref_usuario_exc, ref_usuario_cad, observacao, data_cadastro, data_exclusao, ativo, visivel_pais, cod_ocorrencia_disciplinar';
 
         if (is_numeric($ref_usuario_exc)) {
-                    $this->ref_usuario_exc = $ref_usuario_exc;
+            $this->ref_usuario_exc = $ref_usuario_exc;
         }
         if (is_numeric($ref_usuario_cad)) {
-                    $this->ref_usuario_cad = $ref_usuario_cad;
+            $this->ref_usuario_cad = $ref_usuario_cad;
         }
         if (is_numeric($ref_cod_tipo_ocorrencia_disciplinar)) {
-                    $this->ref_cod_tipo_ocorrencia_disciplinar = $ref_cod_tipo_ocorrencia_disciplinar;
+            $this->ref_cod_tipo_ocorrencia_disciplinar = $ref_cod_tipo_ocorrencia_disciplinar;
         }
         if (is_numeric($ref_cod_matricula)) {
-                    $this->ref_cod_matricula = $ref_cod_matricula;
+            $this->ref_cod_matricula = $ref_cod_matricula;
         }
 
         if (is_numeric($sequencial)) {
@@ -135,6 +133,7 @@ class clsPmieducarMatriculaOcorrenciaDisciplinar extends Model
     {
         if (is_numeric($this->ref_cod_matricula) && is_numeric($this->ref_cod_tipo_ocorrencia_disciplinar) && is_numeric($this->sequencial) && is_numeric($this->ref_usuario_exc)) {
             $db = new clsBanco();
+            $gruda = '';
             $set = '';
 
             if (is_numeric($this->ref_usuario_exc)) {

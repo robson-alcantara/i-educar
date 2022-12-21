@@ -273,8 +273,8 @@ class clsPmieducarCandidatoFilaUnica extends Model
             && is_numeric($this->ref_cod_aluno)
         ) {
             $db = new clsBanco();
-            $set = '';
             $gruda = '';
+            $set = '';
 
             if (is_numeric($this->ref_cod_serie)) {
                 $set .= "{$gruda}ref_cod_serie = {$this->ref_cod_serie}";
@@ -393,12 +393,12 @@ class clsPmieducarCandidatoFilaUnica extends Model
         $sqlEscolas = 'null';
 
         if ($getEscolas) {
-            $sqlEscolas = " (SELECT string_agg(j.fantasia, ', ')
+            $sqlEscolas = ' (SELECT string_agg(j.fantasia, \', \')
                           FROM pmieducar.escola_candidato_fila_unica ecfu
                     INNER JOIN pmieducar.escola e ON e.cod_escola = ecfu.ref_cod_escola
                     INNER JOIN cadastro.juridica j ON j.idpes = e.ref_idpes
                          WHERE ecfu.ref_cod_candidato_fila_unica = cfu.cod_candidato_fila_unica
-                      GROUP BY ecfu.ref_cod_candidato_fila_unica) AS escolas";
+                      GROUP BY ecfu.ref_cod_candidato_fila_unica) AS escolas';
         }
 
         $sql = "SELECT {$this->_campos_lista},
@@ -615,6 +615,7 @@ class clsPmieducarCandidatoFilaUnica extends Model
             $db = new clsBanco();
             $db->Consulta("SELECT {$this->_todos_campos},
                                   (cfu.ano_letivo || to_char(cfu.cod_candidato_fila_unica, 'fm00000000')) AS protocolo,
+                                  cfu.ref_cod_matricula,
                                   p.nome,
                                   f.data_nasc,
                                   f.sexo,
@@ -795,7 +796,7 @@ class clsPmieducarCandidatoFilaUnica extends Model
         }
 
         $situacao = $situacao ?: 'NULL';
-        $motivo = str_replace("\'", "''", $motivo) ?: null;
+        $motivo = str_replace("\'", '\'\'', $motivo) ?: null;
         $historico = $this->montaHistorico();
         $data = $data ?: 'NOW()';
 

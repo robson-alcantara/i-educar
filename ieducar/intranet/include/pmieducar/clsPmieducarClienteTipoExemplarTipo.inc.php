@@ -2,8 +2,6 @@
 
 use iEducar\Legacy\Model;
 
-require_once 'include/pmieducar/geral.inc.php';
-
 class clsPmieducarClienteTipoExemplarTipo extends Model
 {
     public $ref_cod_cliente_tipo;
@@ -19,10 +17,10 @@ class clsPmieducarClienteTipoExemplarTipo extends Model
         $this->_campos_lista = $this->_todos_campos = 'ctet.ref_cod_cliente_tipo, ctet.ref_cod_exemplar_tipo, ctet.dias_emprestimo';
 
         if (is_numeric($ref_cod_exemplar_tipo)) {
-                    $this->ref_cod_exemplar_tipo = $ref_cod_exemplar_tipo;
+            $this->ref_cod_exemplar_tipo = $ref_cod_exemplar_tipo;
         }
         if (is_numeric($ref_cod_cliente_tipo)) {
-                    $this->ref_cod_cliente_tipo = $ref_cod_cliente_tipo;
+            $this->ref_cod_cliente_tipo = $ref_cod_cliente_tipo;
         }
 
         if (is_numeric($dias_emprestimo)) {
@@ -77,6 +75,7 @@ class clsPmieducarClienteTipoExemplarTipo extends Model
     {
         if (is_numeric($this->ref_cod_cliente_tipo) && is_numeric($this->ref_cod_exemplar_tipo)) {
             $db = new clsBanco();
+            $gruda = '';
             $set = '';
 
             if (is_numeric($this->dias_emprestimo)) {

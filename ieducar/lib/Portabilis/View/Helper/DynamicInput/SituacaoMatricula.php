@@ -2,15 +2,13 @@
 
 use iEducar\Modules\Enrollments\Model\EnrollmentStatusFilter;
 
-require_once 'lib/Portabilis/View/Helper/DynamicInput/CoreSelect.php';
-
 class Portabilis_View_Helper_DynamicInput_SituacaoMatricula extends Portabilis_View_Helper_DynamicInput_CoreSelect
 {
     protected function inputOptions($options)
     {
         $resources = EnrollmentStatusFilter::getDescriptiveValues();
 
-        return $this->insertOption(10, 'Todas', $resources);
+        return $this->insertOption(EnrollmentStatusFilter::ALL, 'Todas', $resources);
     }
 
     protected function defaultOptions()

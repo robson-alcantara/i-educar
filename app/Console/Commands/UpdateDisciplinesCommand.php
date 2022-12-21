@@ -50,11 +50,12 @@ class UpdateDisciplinesCommand extends Command
         $copiers = $this->option('copier');
         if (empty($copiers)) {
             $service->setDefaultCopiers();
+
             return;
         }
 
         foreach ($copiers as $copier) {
-            $service->setMoveDataService(new $copier);
+            $service->setMoveDataService(new $copier());
         }
     }
 }

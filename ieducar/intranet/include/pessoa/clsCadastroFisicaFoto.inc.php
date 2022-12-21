@@ -57,6 +57,7 @@ class clsCadastroFisicaFoto extends Model
             }
 
             $db->Consulta("INSERT INTO {$this->_tabela} ( $campos ) VALUES( $valores )");
+
             return true;
         }
 
@@ -73,6 +74,7 @@ class clsCadastroFisicaFoto extends Model
         if (is_numeric($this->idpes)) {
             $db = new clsBanco();
             $set = '';
+            $gruda = '';
 
             if (is_string($this->caminho)) {
                 $set .= "{$gruda}caminho = '{$this->caminho}'";

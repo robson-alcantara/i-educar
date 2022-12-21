@@ -1,8 +1,5 @@
 <?php
 
-require_once 'lib/Portabilis/Controller/Page/EditController.php';
-require_once 'Usuario/Model/FuncionarioDataMapper.php';
-
 class EmpresaController extends Portabilis_Controller_Page_EditController
 {
     protected $_dataMapper = 'Usuario_Model_FuncionarioDataMapper';
@@ -80,7 +77,7 @@ class EmpresaController extends Portabilis_Controller_Page_EditController
 
         // observações
         $options = [
-            'label' => Portabilis_String_Utils::toLatin1($this->_getLabel('observacao')),
+            'label' => $this->_getLabel('observacao'),
             'required' => false,
             'size' => 50,
             'max_length' => 253

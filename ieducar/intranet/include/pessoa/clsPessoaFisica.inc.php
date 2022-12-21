@@ -1,9 +1,6 @@
 <?php
 
-use Illuminate\Support\Facades\Session;
-
-require_once 'include/clsBanco.inc.php';
-require_once 'include/Geral.inc.php';
+use Illuminate\Support\Facades\Auth;
 
 class clsPessoaFisica extends clsPessoaFj
 {
@@ -72,7 +69,7 @@ class clsPessoaFisica extends clsPessoaFj
 
         if (is_string($str_nome) && $str_nome != '') {
             $str_nome = $db->escapeString($str_nome);
-            $where .= "{$whereAnd} slug ILIKE unaccent('%{$str_nome}%')";
+            $where .= "{$whereAnd} coalesce(slug, unaccent(nome)) ILIKE unaccent('%{$str_nome}%')";
             $whereAnd = ' AND ';
         }
 
@@ -155,14 +152,14 @@ class clsPessoaFisica extends clsPessoaFj
                 $tupla_fone = '';
             }
 
-            $tupla['ddd_1'] = $tupla_fone['ddd_1'];
-            $tupla['fone_1'] = $tupla_fone['fone_1'];
-            $tupla['ddd_2'] = $tupla_fone['ddd_2'];
-            $tupla['fone_2'] = $tupla_fone['fone_2'];
-            $tupla['ddd_mov'] = $tupla_fone['ddd_mov'];
-            $tupla['fone_mov'] = $tupla_fone['fone_mov'];
-            $tupla['ddd_fax'] = $tupla_fone['ddd_fax'];
-            $tupla['fone_fax'] = $tupla_fone['fone_fax'];
+            $tupla['ddd_1'] = $tupla_fone['ddd_1'] ?? null;
+            $tupla['fone_1'] = $tupla_fone['fone_1'] ?? null;
+            $tupla['ddd_2'] = $tupla_fone['ddd_2'] ?? null;
+            $tupla['fone_2'] = $tupla_fone['fone_2'] ?? null;
+            $tupla['ddd_mov'] = $tupla_fone['ddd_mov'] ?? null;
+            $tupla['fone_mov'] = $tupla_fone['fone_mov'] ?? null;
+            $tupla['ddd_fax'] = $tupla_fone['ddd_fax'] ?? null;
+            $tupla['fone_fax'] = $tupla_fone['fone_fax'] ?? null;
 
             $resultado[] = $tupla;
         }
@@ -521,10 +518,8 @@ class clsPessoaFisica extends clsPessoaFj
     public function excluir()
     {
         if ($this->idpes) {
-            $this->pessoa_logada = Session::get('id_pessoa');
-
+            $this->pessoa_logada = Auth::id();
             $db = new clsBanco();
-            $detalheAntigo = $this->detalheSimples();
             $excluir = $db->Consulta('UPDATE cadastro.fisica SET ativo = 0 WHERE idpes = ' . $this->idpes);
 
             if ($excluir) {

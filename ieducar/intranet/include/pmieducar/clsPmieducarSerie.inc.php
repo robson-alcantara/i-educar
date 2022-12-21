@@ -2,10 +2,6 @@
 
 use iEducar\Legacy\Model;
 
-require_once 'include/pmieducar/geral.inc.php';
-require_once 'RegraAvaliacao/Model/RegraDataMapper.php';
-require_once 'Portabilis/Utils/Database.php';
-
 class clsPmieducarSerie extends Model
 {
     public $cod_serie;
@@ -28,6 +24,7 @@ class clsPmieducarSerie extends Model
     public $bloquear_matricula_faixa_etaria;
     public $exigir_inep;
     public $importar_serie_pre_matricula;
+    public $descricao;
 
     public function __construct(
         $cod_serie = null,
@@ -51,23 +48,24 @@ class clsPmieducarSerie extends Model
         $bloquear_matricula_faixa_etaria = false,
         $idade_ideal = null,
         $exigir_inep = false,
-        $importar_serie_pre_matricula = false
+        $importar_serie_pre_matricula = false,
+        $descricao = null
     ) {
         $db = new clsBanco();
         $this->_schema = 'pmieducar.';
         $this->_tabela = "{$this->_schema}serie";
-        $this->_campos_lista = $this->_todos_campos = 's.cod_serie, s.ref_usuario_exc, s.ref_usuario_cad, s.ref_cod_curso, s.nm_serie, s.etapa_curso, s.concluinte, s.carga_horaria, s.data_cadastro, s.data_exclusao, s.ativo, s.idade_inicial, s.idade_final, s.regra_avaliacao_id, s.observacao_historico, s.dias_letivos, s.regra_avaliacao_diferenciada_id, s.alerta_faixa_etaria, s.bloquear_matricula_faixa_etaria, s.idade_ideal, s.exigir_inep, s.importar_serie_pre_matricula';
+        $this->_campos_lista = $this->_todos_campos = 's.cod_serie, s.ref_usuario_exc, s.ref_usuario_cad, s.ref_cod_curso, s.nm_serie, s.etapa_curso, s.concluinte, s.carga_horaria, s.data_cadastro, s.data_exclusao, s.ativo, s.idade_inicial, s.idade_final, s.regra_avaliacao_id, s.observacao_historico, s.dias_letivos, s.regra_avaliacao_diferenciada_id, s.alerta_faixa_etaria, s.bloquear_matricula_faixa_etaria, s.idade_ideal, s.exigir_inep, s.importar_serie_pre_matricula, s.descricao';
 
         if (is_numeric($ref_cod_curso)) {
-                    $this->ref_cod_curso = $ref_cod_curso;
+            $this->ref_cod_curso = $ref_cod_curso;
         }
 
         if (is_numeric($ref_usuario_exc)) {
-                    $this->ref_usuario_exc = $ref_usuario_exc;
+            $this->ref_usuario_exc = $ref_usuario_exc;
         }
 
         if (is_numeric($ref_usuario_cad)) {
-                    $this->ref_usuario_cad = $ref_usuario_cad;
+            $this->ref_usuario_cad = $ref_usuario_cad;
         }
 
         // Atribuibui a identificação de regra de avaliação
@@ -121,6 +119,10 @@ class clsPmieducarSerie extends Model
 
         if (is_string($nm_serie)) {
             $this->nm_serie = $nm_serie;
+        }
+
+        if (is_string($descricao)) {
+            $this->descricao = $descricao;
         }
 
         if (is_numeric($etapa_curso)) {
@@ -211,6 +213,12 @@ class clsPmieducarSerie extends Model
                 $nm_serie = $db->escapeString($this->nm_serie);
                 $campos[] = 'nm_serie';
                 $valores[] = "'{$nm_serie}'";
+            }
+
+            if (is_string($this->descricao)) {
+                $descricao = $db->escapeString($this->descricao);
+                $campos[] = 'descricao';
+                $valores[] = "'{$descricao}'";
             }
 
             if (is_numeric($this->etapa_curso)) {
@@ -339,6 +347,11 @@ class clsPmieducarSerie extends Model
             if (is_string($this->nm_serie)) {
                 $nm_serie = $db->escapeString($this->nm_serie);
                 $set[] = "nm_serie = '{$nm_serie}'";
+            }
+
+            if (is_string($this->descricao)) {
+                $descricao = $db->escapeString($this->descricao);
+                $set[] = "descricao = '{$descricao}'";
             }
 
             if (is_numeric($this->etapa_curso)) {
@@ -543,7 +556,7 @@ class clsPmieducarSerie extends Model
             $filtros[] = "idade_final= '{$int_idade_final}'";
         }
 
-        if (is_numeric($int_ref_cod_escola)) {
+        if (isset($int_ref_cod_escola)) {
             $condicao = " EXISTS (SELECT
                     1
                 FROM
@@ -553,14 +566,14 @@ class clsPmieducarSerie extends Model
                     AND es.ativo = 1
                     AND es.ref_cod_escola = '{$int_ref_cod_escola}' ";
 
-            if (is_numeric($ano)) {
+            if (isset($ano)) {
                 $condicao .= " AND {$ano} = ANY(es.anos_letivos) ";
             }
             $condicao .= ' ) ';
 
             $filtros[] = $condicao;
-        } elseif (is_numeric($ano)) {
-            $filtros[] = "{$whereAnd} EXISTS (SELECT 1
+        } elseif (isset($ano)) {
+            $filtros[] = " EXISTS (SELECT 1
                                          FROM pmieducar.escola_serie es
                                         WHERE s.cod_serie = es.ref_cod_serie
                                           AND es.ativo = 1
@@ -591,11 +604,8 @@ class clsPmieducarSerie extends Model
                 $resultado[] = $tupla[$this->_campos_lista];
             }
         }
-        if (count($resultado)) {
-            return $resultado;
-        }
 
-        return false;
+        return $resultado;
     }
 
     public function listaSeriesComComponentesVinculados(
@@ -604,7 +614,7 @@ class clsPmieducarSerie extends Model
         $int_ref_cod_instituicao = null,
         $int_ativo = null
     ) {
-        $sql = "SELECT {$this->_campos_lista},
+        $sql = "SELECT {$this->_campos_lista}, s.descricao,
             c.ref_cod_instituicao FROM {$this->_tabela} s,
             {$this->_schema}curso c";
 

@@ -2,24 +2,7 @@
 
 use App\Models\PersonHasPlace;
 
-require_once 'include/clsBase.inc.php';
-require_once 'include/clsDetalhe.inc.php';
-require_once 'include/clsBanco.inc.php';
-require_once 'include/pmieducar/geral.inc.php';
-require_once 'Portabilis/View/Helper/Application.php';
-require_once 'App/Model/ZonaLocalizacao.php';
-
-class clsIndexBase extends clsBase
-{
-    public function Formular()
-    {
-        $this->SetTitulo("{$this->_instituicao} i-Educar - Escola");
-        $this->processoAp = '561';
-    }
-}
-
-class indice extends clsDetalhe
-{
+return new class extends clsDetalhe {
     public $cod_escola;
     public $ref_usuario_cad;
     public $ref_usuario_exc;
@@ -121,7 +104,7 @@ class indice extends clsDetalhe
         }
 
         if ($registro['ref_idpes']) {
-            $this->addDetalhe(['Raz&atilde;o Social', "{$registro['ref_idpes']}"]);
+            $this->addDetalhe(['Razão Social', "{$registro['ref_idpes']}"]);
         }
 
         if (isset($place)) {
@@ -169,7 +152,7 @@ class indice extends clsDetalhe
                 } else {
                     $color = ' bgcolor=\'#ffffff\' ';
                 }
-                $obj_curso = new clspmieducarcurso($valor['ref_cod_curso']);
+                $obj_curso = new clsPmieducarCurso($valor['ref_cod_curso']);
                 $obj_curso->setorderby('nm_curso asc');
                 $obj_curso_det = $obj_curso->detalhe();
                 $nm_curso = $obj_curso_det['nm_curso'];
@@ -281,13 +264,13 @@ class indice extends clsDetalhe
             $tabela .= '</table></td></tr>';
             $tabela .= '<tr>
                             <td>
-                                <span class=\'formlttd\'><b>*Somente &eacute; poss&iacute;vel finalizar um ano letivo ap&oacute;s n&atilde;o existir mais nenhuma matr&iacute;cula em andamento.</b></span>
+                                <span class=\'formlttd\'><b>*Somente é possível finalizar um ano letivo após não existir mais nenhuma matrícula em andamento.</b></span>
                             </td>
                         </tr>';
             if (!$canEdit) {
                 $tabela .= '<tr>
                             <td>
-                                <span class=\'formlttd\'><b>**Somente usu&aacute;rios com permiss&atilde;o de edição de escola podem alterar anos letivos.</b></span>
+                                <span class=\'formlttd\'><b>**Somente usuários com permissão de edição de escola podem alterar anos letivos.</b></span>
                             </td>
                         </tr>';
             }
@@ -306,24 +289,15 @@ class indice extends clsDetalhe
 
         return $existe == true ? $tabela : false;
     }
-}
 
-$pagina = new clsIndexBase();
-$miolo = new indice();
-
-$pagina->addForm($miolo);
-$pagina->MakeAll();
-
-?>
-<script>
-  function preencheForm (ano, escola, acao) {
-    if (!confirm('Deseja realmente \'' + acao.substr(0, 1).toUpperCase() + acao.substr(1) + '\' o ano letivo?')) {
-      return false;
+    public function makeExtra()
+    {
+        return file_get_contents(__DIR__ . '/scripts/extra/educar-escola-det.js');
     }
 
-    document.acao_ano_letivo.ano.value = ano;
-    document.acao_ano_letivo.ref_cod_escola.value = escola;
-    document.acao_ano_letivo.tipo_acao.value = acao;
-    document.acao_ano_letivo.submit();
-  }
-</script>
+    public function Formular()
+    {
+        $this->title = 'Escola';
+        $this->processoAp = '561';
+    }
+};

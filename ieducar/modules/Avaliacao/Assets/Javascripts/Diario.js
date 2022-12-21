@@ -1,5 +1,3 @@
-//$j('#form_resultado').submit(function(event) {event.preventDefault()});
-
 // variaveis usadas pelo modulo Frontend/Process.js
 var PAGE_URL_BASE = 'diario';
 var API_URL_BASE  = 'diarioApi';
@@ -99,7 +97,7 @@ var getResourceUrlBuilder = {
 };
 
 
-function changeResource($resourceElement, postFunction, deleteFunction) {
+function  changeResource($resourceElement, postFunction, deleteFunction) {
   //Substitui traveções por hífen antes de gravar
   $resourceElement.val($resourceElement.val().replace(/\u2013|\u2014/g, "-"));
 
@@ -266,29 +264,31 @@ var changeFalta = function(event) {
   }
 };
 
-
-var changeParecer = function(event) {
+var changeParecer = function(element) {
   if (locked) {
     handleLockedMessage();
     return;
   }
 
-  var $element = $j(this);
-  var regra = $j(this).closest('tr').data('regra');
-  setDefaultFaltaIfEmpty($element.data('matricula_id'), $element.data('componente_curricular_id'));
-  changeResource($element, postParecer, deleteParecer);
+  var regra = element.closest('tr').data('regra');
+  setDefaultFaltaIfEmpty(element.data('matricula_id'), element.data('componente_curricular_id'));
+  changeResource(element, postParecer, deleteParecer);
 
   // se parecer geral, muda o valor em todos pareceres da mesma matricula
   var parecerGeral = $j.inArray(regra.tipo_parecer_descritivo,
-                                ['etapa_geral', 'anual_geral']) > -1;
+          ['etapa_geral', 'anual_geral']) > -1;
 
   if (parecerGeral) {
-    var $fieldsParecerMatricula = $element.closest('table').find('.parecer-matricula-' + $element
-                                                                 .data('matricula_id') + '-cc')
-                                                                 .not($element);
+    var $fieldsParecerMatricula = element.closest('table').find('.parecer-matricula-' + element
+            .data('matricula_id') + '-cc')
+        .not(element);
 
-    $fieldsParecerMatricula.val($element.val());
-    $fieldsParecerMatricula.data('old_value', $element.val());
+    $fieldsParecerMatricula.val(element.val());
+    $fieldsParecerMatricula.data('old_value', element.val());
+
+    $fieldsParecerMatricula.each(function(id, value) {
+      $j(value).closest('td').find('.note-editable').html(element.val());
+    });
   }
 };
 
@@ -334,6 +334,14 @@ var changeSituacao = function(event) {
   if($element.val() != 0){
     changeResource($element, postSituacao);
     $element.data('old_value', $element.val());
+  }
+};
+
+let changeRegistrationLockStatus = function(event) {
+  let element = $j(this);
+
+  if(element[0].id != 0) {
+    changeResource(element, postBloqueioDeMudanca);
   }
 };
 
@@ -520,13 +528,12 @@ function postNotaRecuperacaoEspecifica($notaRecuperacaoEspecificaElement) {
 
 function postFalta($faltaFieldElement) {
   $faltaFieldElement.val($faltaFieldElement.val().replace(',', '.'));
-
+  var regra = $faltaFieldElement.closest('tr').data('regra');
   //falta é persistida como inteiro
   if ($j.isNumeric($faltaFieldElement.val()))
     $faltaFieldElement.val(parseInt($faltaFieldElement.val()).toString());
-
   if (validatesIfValueIsNumeric($faltaFieldElement.val(), $faltaFieldElement.attr('id')) &&
-      validatesIfNumericValueIsInRange($faltaFieldElement.val(), $faltaFieldElement.attr('id'), 0, 100)) {
+      validatesIfNumericValueIsInRange($faltaFieldElement.val(), $faltaFieldElement.attr('id'), regra.falta_minima_geral, regra.falta_maxima_geral)) {
 
     beforeChangeResource($faltaFieldElement);
 
@@ -550,7 +557,7 @@ function postFalta($faltaFieldElement) {
   } else {
     $j('#' + $faltaFieldElement.attr('id')).addClass('error');
 
-    var regra = $element.closest('tr').data('regra');
+    regra = $element.closest('tr').data('regra');
 
     // se presenca geral, muda o valor em todas faltas da mesma matricula
     if (regra.tipo_presenca == 'geral') {
@@ -589,9 +596,13 @@ function postParecer($parecerFieldElement) {
     .done(function(dataResponse) {
       afterChangeResource($parecerFieldElement);
       handleChange(dataResponse);
+        $parecerFieldElement.closest('td').find('.note-editable').removeClass('summernote-parecer-bg-red')
+            .addClass('summernote-parecer-bg-green');
     })
     .fail(function() {
-      errorCallback || handleErrorOnDeleteResource;
+        $parecerFieldElement.closest('td').find('.note-editable').removeClass('summernote-parecer-bg-green')
+            .addClass('summernote-parecer-bg-red');
+        errorCallback || handleErrorOnDeleteResource;
     });
 }
 
@@ -678,7 +689,7 @@ function postSituacao($situacaoElementField) {
   var options = {
     url : postResourceUrlBuilder.buildUrl(API_URL_BASE, 'situacao', additionalVars),
     dataType : 'json',
-    data : {att_value : $situacaoElementField.val()},
+    data : {new_status : $situacaoElementField.val()},
     success : function(dataResponse) {
       afterChangeResource($situacaoElementField);
       handleChange(dataResponse);
@@ -686,6 +697,27 @@ function postSituacao($situacaoElementField) {
   };
 
   $situacaoElementField.data('old_value', $situacaoElementField.val());
+  postResource(options, handleErrorOnPostResource);
+}
+
+function postBloqueioDeMudanca(bloqueioSituacaoField) {
+
+  let additionalVars = {
+    matricula_id : bloqueioSituacaoField[0].id
+  };
+
+  let options = {
+    url : postResourceUrlBuilder.buildUrl(API_URL_BASE, 'bloqueia_troca_de_situacao', additionalVars),
+    dataType : 'json',
+    data : {bloquear_troca_de_situacao : bloqueioSituacaoField.is(":checked")},
+    success : function(dataResponse) {
+      let matriculaId     = dataResponse.matricula_id;
+      let $situacaoField  = $j('#situacao-matricula-' + matriculaId + '-cc-');
+      $situacaoField.prop('disabled', dataResponse.bloquear_troca_de_situacao);
+      messageUtils.success(dataResponse.msgs[0].msg)
+    }
+  };
+
   postResource(options, handleErrorOnPostResource);
 }
 
@@ -966,7 +998,7 @@ function setTableSearchDetails($tableSearchDetails, dataDetails) {
   var $linha = $j('<tr />');
 
   if (componenteCurricularSelected) {
-    $j('<th />').html('&Aacute;rea de Conhecimento').appendTo($linha);
+    $j('<th />').html('área de Conhecimento').appendTo($linha);
     $j('<th />').html('Componente curricular').appendTo($linha);
   }
 
@@ -1134,14 +1166,15 @@ function handleSearch($resultTable, dataResponse) {
       updateComponenteCurriculares($resultTable, value.matricula_id, value.componentes_curriculares, value.regra);
 
     if((value.regra.quantidade_etapas == $j('#etapa').val() ) && (value.regra.progressao_manual || value.regra.progressao_manual_ciclo) && !componenteCurricularSelected){
-      situacaoFinalField(dataResponse.matricula_id, dataResponse.situacao).appendTo($resultTable);
+      situacaoFinalField(dataResponse.matricula_id, dataResponse.situacao,value).appendTo($resultTable);
     }
 
     if ((!componenteCurricularSelected) && (showBotaoReplicarNotas))
       criaBotaoReplicarNotasPorArea(value.componentes_curriculares);
-
+    if(value.componentes_curriculares.length > 0) {
+      initSummernote('parecer-matricula-' + value.matricula_id + '-cc-' + value.componentes_curriculares[0].id);
+    }
   });
-
   // seta colspan [th, td].aluno quando exibe nota exame
   if (useNota &&
       (ultimaEtapa || definirComponentesEtapa)) {
@@ -1154,22 +1187,22 @@ function handleSearch($resultTable, dataResponse) {
   var $notaFields = $resultTable.find('.nota-matricula-cc');
   var $notaExameFields = $resultTable.find('.nota_exame-matricula-cc');
   var $faltaFields = $resultTable.find('.falta-matricula-cc');
-  var $parecerFields = $resultTable.find('.parecer-matricula-cc');
   var $notaRecuperacaoParalelaFields = $resultTable.find('.nota-recuperacao-paralela-cc');
   var $notaRecuperacaoEspecificaFields = $resultTable.find('.nota-recuperacao-especifica-matricula-cc');
   var $notaGeralEtapaFields = $resultTable.find('.nota-geral-etapa');
   var $mediaFields = $resultTable.find('.media-cc');
   var $situacaoField = $resultTable.find('.situacao-cc');
+  let bloqueioField = $resultTable.find('.bloqueio-matricula');
 
   $notaFields.on('change', changeNota);
   $notaExameFields.on('change', changeNotaExame);
   $faltaFields.on('change', changeFalta);
-  $parecerFields.on('change', changeParecer);
   $notaRecuperacaoParalelaFields.on('change', changeNotaRecuperacaoParalela);
   $notaRecuperacaoEspecificaFields.on('change', changeNotaRecuperacaoEspecifica);
   $notaGeralEtapaFields.on('change', changeNotaGeralEtapa);
   $mediaFields.on('change', changeMedia);
   $situacaoField.on('change', changeSituacao);
+  bloqueioField.on('change', changeRegistrationLockStatus);
 
   $resultTable.addClass('styled').find('.tabable:first').focus();
   navegacaoTab(dataResponse.navegacao_tab);
@@ -1189,6 +1222,11 @@ function handleSearch($resultTable, dataResponse) {
     criaBotaoReplicarNotas();
 
   $j('.flashMessages').addClass('msg-diario');
+
+  if(dataResponse.matriculas.length === 1) {
+    $situacaoField.prop('disabled', dataResponse.matriculas[0].bloquear_troca_de_situacao);
+  }
+
 }
 
 function _notaField(matriculaId, componenteCurricularId, klass, id, value, areaConhecimentoId, maxLength, tipoNota, regra) {
@@ -1348,6 +1386,7 @@ function parecerField(matriculaId, componenteCurricularId, value) {
   var $parecerField = $j('<textarea />').attr('cols', '40')
                                         .attr('rows', '5')
                                         .addClass('parecer-matricula-cc')
+                                        .addClass('parecer-matricula-cc-summernote')
                                         .addClass('parecer-matricula-' + matriculaId + '-cc')
                                         .attr('id', 'parecer-matricula-' + matriculaId + '-cc-' + componenteCurricularId)
                                         .val(value)
@@ -1356,7 +1395,7 @@ function parecerField(matriculaId, componenteCurricularId, value) {
                                         .data('componente_curricular_id', componenteCurricularId);
 
   setNextTabIndex($parecerField);
-  return $j('<td />').addClass('center').html($parecerField);
+  return $j('<td />').html($parecerField);
 }
 
 function notaRecuperacaoParalelaField(matriculaId, componenteCurricularId, value, areaConhecimentoId, maxLength, regra) {
@@ -1604,7 +1643,7 @@ function updateComponenteCurricularHeaders($targetElement, $tagElement) {
   $tagElement.clone().addClass('center').html('Falta').appendTo($targetElement);
 
   if (hUseParecer)
-    $tagElement.clone().addClass('center').html('Parecer descritivo').appendTo($targetElement);
+    $tagElement.clone().addClass('center').css('width', '45%').html('Parecer descritivo').appendTo($targetElement);
 }
 
 function updateComponenteCurriculares($targetElement, matriculaId, componentesCurriculares, regra) {
@@ -1645,6 +1684,7 @@ function updateComponenteCurriculares($targetElement, matriculaId, componentesCu
     updateComponenteCurricular($ccRow, matriculaId, cc, regra);
 
     $ccRow.appendTo($targetElement);
+    initSummernote('parecer-matricula-'+matriculaId+'-cc-'+cc.id);
   });
 
   $j('.tr-area-conhecimento').bind('click', function() {
@@ -1746,26 +1786,44 @@ function changeMediaValue(elementId, nota, notaArredondada, regra){
   }
 }
 
-function situacaoFinalField($matriculaId, $situacao){
+function situacaoFinalField($matriculaId, $situacao, value){
 
-  var $selectSituacao  = $j('<select />').attr('id', 'situacao' + '-matricula-' + $matriculaId + '-cc-').addClass('situacao-cc').data('matricula_id', $matriculaId);
-  var $optionDefault                = $j('<option />').html('').val(0).attr('selected', 'selected');
-  var $optionAprovado               = $j('<option />').html('Aprovado').val(1);
-  var $optionRetido                 = $j('<option />').html('Retido').val(2);
-  var $optionAprovadoPeloConselho   = $j('<option />').html('Aprovado pelo conselho').val(13);
-  var $optionAprovadoComDependencia = $j('<option />').html('Aprovado com dependência').val(12);
+  let situacaoValueAvailable = [1,2,12,13];
+  let selectId = 'situacao' + '-matricula-' + $matriculaId + '-cc-';
+  let $selectSituacao               = $j('<select />').attr('id', selectId).addClass('situacao-cc').data('matricula_id', $matriculaId);
+  let $optionDefault                = $j('<option />').html('').val(0).attr('selected', !situacaoValueAvailable.includes(value.situacao));
+  let $optionAprovado               = $j('<option />').html('Aprovado').val(1).attr('selected', value.situacao === 1);
+  let $optionRetido                 = $j('<option />').html('Retido').val(2).attr('selected', value.situacao === 2);
+  let $optionAprovadoPeloConselho   = $j('<option />').html('Aprovado pelo conselho').val(13).attr('selected', value.situacao === 13);
+  let $optionAprovadoComDependencia = $j('<option />').html('Aprovado com dependência').val(12).attr('selected', value.situacao === 12);
+
+  let $checkbox = $j('<input />')
+    .attr('type', 'checkbox')
+    .attr('name', 'bloqueio-matricula')
+    .attr('id', $matriculaId)
+    .prop('checked', value.bloquear_troca_de_situacao)
+    .attr('class', 'bloqueio-matricula');
+
+  let label =  $j('<label />')
+    .attr('for', $matriculaId)
+    .html('Bloquear troca de situação de matrícula');
 
   $optionDefault.appendTo($selectSituacao);
   $optionAprovado.appendTo($selectSituacao);
   $optionRetido.appendTo($selectSituacao);
   $optionAprovadoPeloConselho.appendTo($selectSituacao);
+
   if (regra_dependencia) {
     $optionAprovadoComDependencia.appendTo($selectSituacao);
   }
 
-  var $element = $j('<tr />').addClass('center resultado-final');
+  let $element = $j('<tr />').addClass('center resultado-final');
   $j('<td />').addClass('center resultado-final').html(safeUtf8Decode('Situação final')).appendTo($element);
-  $j('<td />').addClass('resultado-final-esquerda').attr('colspan', '6').html($selectSituacao).appendTo($element);
+  let resultado = $j('<td />').addClass('resultado-final-esquerda').attr('colspan', '6').html($selectSituacao);
+
+  resultado.append($checkbox);
+  resultado.append(label);
+  resultado.appendTo($element);
 
   return $element;
 }
@@ -1938,6 +1996,68 @@ function criaBotaoReplicarNotas(){
         }
     });
   }
+}
+
+function initSummernote(sElement) {
+
+  const element = $j(`#${sElement}`);
+  let value = element.val();
+
+  const settings = {
+    height: 146,                 // set editor height
+    minHeight: null,             // set minimum height of editor
+    maxHeight: null,             // set maximum height of editor
+    focus: false,                 // set focus to editable area after initializing summernote
+    lang: 'pt-BR',
+    toolbar: [
+      ['style', ['bold', 'italic', 'underline', 'clear']],
+    ],
+    fontNames: ['Arial'],
+    callbacks: {
+      onBlur: function(contents) {
+
+        const elementToFind = contents.relatedTarget;
+        const attrClass = $j(elementToFind).attr('class');
+
+        if(!attrClass || !attrClass.include('note-btn')) {
+
+          const currentlyValue = element.val();
+
+          if (value != currentlyValue) {
+
+            if (currentlyValue.replace(/<\/?[^>]+(>|$)/g, "") === '') {
+
+              element.val(currentlyValue.replace(/<\/?[^>]+(>|$)/g, ""));
+
+              value = currentlyValue.replace(/<\/?[^>]+(>|$)/g, "");
+
+            } else {
+
+              value = currentlyValue;
+            }
+
+            changeParecer($j(this));
+
+          }
+        }
+      },
+      onPaste : function (event) {
+        event.preventDefault();
+        let text = null;
+        if (window.clipboardData){
+          text = window.clipboardData.getData("Text");
+
+        } else if (event.originalEvent && event.originalEvent.clipboardData){
+          text = event.originalEvent.clipboardData.getData("Text");
+        }
+
+        element.summernote('insertText', text);
+
+        element.val(text);
+      }
+    }
+  };
+  element.summernote(settings);
 }
 
 

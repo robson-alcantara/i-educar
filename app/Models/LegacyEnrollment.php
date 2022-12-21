@@ -45,7 +45,12 @@ class LegacyEnrollment extends Model
         'data_cadastro',
         'data_enturmacao',
         'sequencial_fechamento',
+        'remanejado_mesma_turma',
         'ativo',
+        'tipo_itinerario',
+        'composicao_itinerario',
+        'curso_itinerario',
+        'itinerario_concomitante'
     ];
 
     /**
@@ -130,7 +135,6 @@ class LegacyEnrollment extends Model
         return $this->belongsTo(LegacySchoolClass::class, 'ref_cod_turma');
     }
 
-
     /**
      * Retorna o turno do aluno.
      *
@@ -161,5 +165,10 @@ class LegacyEnrollment extends Model
     public function updatedBy()
     {
         return $this->belongsTo(User::class, 'ref_usuario_exc');
+    }
+
+    public function getStudentId()
+    {
+        return $this->registration->student->cod_aluno;
     }
 }

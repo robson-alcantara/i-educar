@@ -335,7 +335,7 @@ class MovimentoGeralQueryFactory extends QueryFactory
                         select ref_cod_serie
                         from modules.config_movimento_geral
                         inner join pmieducar.serie on serie.cod_serie = config_movimento_geral.ref_cod_serie
-                        where true 
+                        where true
                             and (case
                                 when :seleciona_curso = 0 then
                                     true
@@ -420,7 +420,7 @@ class MovimentoGeralQueryFactory extends QueryFactory
                         from pmieducar.matricula_turma
                         where matricula_turma.ref_cod_matricula = mt.ref_cod_matricula
                     )
-                    and coalesce(mt.data_exclusao, m.data_cancel) between :data_inicial::date and :data_final::date
+                    and coalesce(mt.data_exclusao, m.data_cancel) between :data_inicial::date and :data_final::date and mt.remanejado_mesma_turma = false
             ) as rem,
             (
                 select count(m.cod_matricula)

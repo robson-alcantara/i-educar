@@ -2,8 +2,6 @@
 
 use iEducar\Legacy\Model;
 
-require_once 'include/pmieducar/geral.inc.php';
-
 class clsPmieducarClienteTipoCliente extends Model
 {
     public $ref_cod_cliente_tipo;
@@ -32,11 +30,11 @@ class clsPmieducarClienteTipoCliente extends Model
         $this->_campos_lista = $this->_todos_campos = 'ctc.ref_cod_cliente_tipo, ctc.ref_cod_cliente, ctc.data_cadastro, ctc.data_exclusao, ctc.ref_usuario_cad, ctc.ref_usuario_exc, ctc.ativo';
 
         if (is_numeric($ref_cod_cliente_tipo)) {
-                    $this->ref_cod_cliente_tipo = $ref_cod_cliente_tipo;
+            $this->ref_cod_cliente_tipo = $ref_cod_cliente_tipo;
         }
 
         if (is_numeric($ref_cod_cliente)) {
-                    $this->ref_cod_cliente = $ref_cod_cliente;
+            $this->ref_cod_cliente = $ref_cod_cliente;
         }
 
         if (is_string($data_cadastro)) {
@@ -117,6 +115,7 @@ class clsPmieducarClienteTipoCliente extends Model
     {
         if (is_numeric($this->ref_cod_cliente_tipo) && is_numeric($this->ref_cod_cliente) && is_numeric($this->ref_usuario_exc) && is_numeric($this->ativo)) {
             $db = new clsBanco();
+            $gruda = '';
             $set = '';
 
             $set .= "{$gruda}data_exclusao = NOW()";
@@ -148,6 +147,7 @@ class clsPmieducarClienteTipoCliente extends Model
     {
         if (is_numeric($this->ref_cod_cliente_tipo) && is_numeric($this->ref_cod_cliente) && is_numeric($this->ref_usuario_exc) && is_numeric($this->ativo)) {
             $db = new clsBanco();
+            $gruda = '';
             $set = '';
 
             $set .= "{$gruda}data_exclusao = NOW()";
@@ -182,6 +182,7 @@ class clsPmieducarClienteTipoCliente extends Model
     {
         if (is_numeric($this->ref_cod_cliente_tipo) && is_numeric($this->ref_cod_cliente) && is_numeric($this->ref_usuario_exc) && is_numeric($this->ativo) && is_numeric($this->ref_cod_biblioteca) && $ref_cod_biblioteca_atual) {
             $db = new clsBanco();
+            $gruda = '';
             $set = '';
 
             $set .= "{$gruda}data_exclusao = NOW()";

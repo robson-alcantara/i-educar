@@ -2,11 +2,8 @@
 
 use App\Models\LegacyPerson;
 use iEducar\Modules\Educacenso\Model\Nacionalidade;
-use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
-
-require_once 'include/clsBanco.inc.php';
-require_once 'include/Geral.inc.php';
 
 class clsFisica
 {
@@ -22,6 +19,7 @@ class clsFisica
     public $data_uniao;
     public $data_obito;
     public $nome_social;
+    public $observacao;
 
     /**
      * Nacionalidade:
@@ -71,28 +69,28 @@ class clsFisica
     public $schema;
 
     public function __construct(
-        $idpes=false,
-        $data_nasc=false,
-        $sexo=false,
-        $idpes_mae=false,
-        $idpes_pai=false,
-        $idpes_responsavel=false,
-        $idesco=false,
-        $ideciv=false,
-        $idpes_con=false,
-        $data_uniao=false,
-        $data_obito=false,
-        $nacionalidade=false,
-        $idpais_estrangeiro=false,
-        $data_chagada_brasil=false,
-        $idmun_nascimento=false,
-        $ultima_empresa=false,
-        $idocup=false,
-        $nome_mae=false,
-        $nome_pai=false,
-        $nome_conjuge=false,
-        $nome_responsavel=false,
-        $justificativa_provisorio=false,
+        $idpes = false,
+        $data_nasc = false,
+        $sexo = false,
+        $idpes_mae = false,
+        $idpes_pai = false,
+        $idpes_responsavel = false,
+        $idesco = false,
+        $ideciv = false,
+        $idpes_con = false,
+        $data_uniao = false,
+        $data_obito = false,
+        $nacionalidade = false,
+        $idpais_estrangeiro = false,
+        $data_chagada_brasil = false,
+        $idmun_nascimento = false,
+        $ultima_empresa = false,
+        $idocup = false,
+        $nome_mae = false,
+        $nome_pai = false,
+        $nome_conjuge = false,
+        $nome_responsavel = false,
+        $justificativa_provisorio = false,
         $idpes_cad = false,
         $idpes_rev = false,
         $ref_cod_sistema = false,
@@ -110,9 +108,9 @@ class clsFisica
         $local_trabalho = false,
         $horario_inicial_trabalho = false,
         $horario_final_trabalho = false,
-        $nome_social = false
+        $nome_social = false,
+        $observacao = false
     ) {
-        $this->pessoa_logada = Session::get('id_pessoa');
         $objPessoa = new clsPessoa_($idpes);
         if ($objPessoa->detalhe()) {
             $this->idpes  = $idpes;
@@ -168,7 +166,7 @@ class clsFisica
         $this->nacionalidade            = $nacionalidade;
 
         // todo Remover variável não usada
-        $this->data_chegada_brasil      = $data_chegada_brasil ?? null;
+        $this->data_chegada_brasil      = null;
         $this->ultima_empresa           = $ultima_empresa;
         $this->nome_mae                 = $nome_mae;
         $this->nome_pai                 = $nome_pai;
@@ -180,7 +178,7 @@ class clsFisica
         $this->empresa                  = $empresa;
         $this->ddd_telefone_empresa     = $ddd_telefone_empresa;
         $this->telefone_empresa         = $telefone_empresa;
-        $this->pessoa_contato           = $pessoa_contato ?? null;
+        $this->pessoa_contato           = null;
         $this->renda_mensal             = $renda_mensal;
         $this->data_admissao            = $data_admissao;
         $this->zona_localizacao_censo   = $zona_localizacao_censo;
@@ -189,6 +187,7 @@ class clsFisica
         $this->horario_inicial_trabalho = $horario_inicial_trabalho;
         $this->horario_final_trabalho   = $horario_final_trabalho;
         $this->nome_social              = $nome_social;
+        $this->observacao              = $observacao;
 
         $cpf = idFederal2int($cpf);
 
@@ -197,8 +196,8 @@ class clsFisica
         }
 
         $this->justificativa_provisorio = $justificativa_provisorio;
-        $this->idpes_cad = $idpes_cad ? $idpes_cad : Session::get('id_pessoa');
-        $this->idpes_rev = $idpes_rev ? $idpes_rev : Session::get('id_pessoa');
+        $this->idpes_cad = $idpes_cad ? $idpes_cad : Auth::id();
+        $this->idpes_rev = $idpes_rev ? $idpes_rev : Auth::id();
 
         $this->tabela = 'fisica';
         $this->schema = 'cadastro';
@@ -443,6 +442,14 @@ class clsFisica
 
                 $campos  .= ', nome_social';
                 $valores .= ', NULL';
+            }
+
+            if (is_string($this->observacao) && $this->observacao != 'NULL') {
+                $campos  .= ', observacao';
+                $valores .= ", '$this->observacao'";
+            }else{
+                $campos  .= ', observacao';
+                $valores .= ", NULL";
             }
 
             $db->Consulta("INSERT INTO {$this->schema}.{$this->tabela} (idpes, origem_gravacao, data_cad, operacao, idpes_cad $campos) VALUES ( '{$this->idpes}', 'M', NOW(), 'I', '$this->idpes_cad' $valores )");
@@ -704,10 +711,18 @@ class clsFisica
                 $slug = Str::lower(Str::slug($this->nome_social, ' '));
 
                 $person = LegacyPerson::query()->find($this->idpes);
-                $person->slug = "{$slug} {$person->slug}";
+                $person->slug = trim("{$slug} {$person->slug}");
                 $person->save();
 
                 $set .= "$gruda nome_social = '{$this->nome_social}'";
+            }
+
+            if (is_string($this->observacao) && $this->observacao != 'NULL') {
+                $set .= "$gruda observacao = '{$this->observacao}'";
+                $gruda = ', ';
+            }else{
+                $set .= "$gruda observacao = NULL";
+                $gruda = ', ';
             }
 
             if ($set) {
@@ -752,8 +767,9 @@ class clsFisica
      *
      * @return Array
      */
-    public function lista($int_idpes=false, $data_data_nasc=false, $str_sexo=false, $int_idpes_mae=false, $int_idpes_pai=false, $int_idpes_responsavel=false, $int_idesco=false, $int_ideciv=false, $int_idpes_con=false, $data_data_uniao=false, $data_data_obito=false, $int_nacionalidade=false, $int_idpais_estrangeiro=false, $data_data_chagada_brasil=false, $int_idmun_nascimento=false, $str_ultima_empresa=false, $int_idocup=false, $str_nome_mae=false, $str_nome_pai=false, $str_nome_conjuge=false, $str_nome_responsavel=false, $str_justificativa_provisorio=false, $str_ordenacao=false, $int_limite_ini=0, $int_limite_qtd=20, $arrayint_idisin = false, $arrayint_idnotin = false, $str_data_nasc_ini = false, $str_data_nasc_fim = false, $int_mes_aniversario = false, $int_ref_cod_sistema = false, $int_cpf = false)
+    public function lista($int_idpes = false, $data_data_nasc = false, $str_sexo = false, $int_idpes_mae = false, $int_idpes_pai = false, $int_idpes_responsavel = false, $int_idesco = false, $int_ideciv = false, $int_idpes_con = false, $data_data_uniao = false, $data_data_obito = false, $int_nacionalidade = false, $int_idpais_estrangeiro = false, $data_data_chagada_brasil = false, $int_idmun_nascimento = false, $str_ultima_empresa = false, $int_idocup = false, $str_nome_mae = false, $str_nome_pai = false, $str_nome_conjuge = false, $str_nome_responsavel = false, $str_justificativa_provisorio = false, $str_ordenacao = false, $int_limite_ini = 0, $int_limite_qtd = 20, $arrayint_idisin = false, $arrayint_idnotin = false, $str_data_nasc_ini = false, $str_data_nasc_fim = false, $int_mes_aniversario = false, $int_ref_cod_sistema = false, $int_cpf = false)
     {
+        $where = '';
         $whereAnd = 'WHERE ';
 
         if (is_numeric($int_idpes)) {
@@ -800,10 +816,6 @@ class clsFisica
             $where .= "{$whereAnd}idpes_con =  '$int_idpes_con'";
             $whereAnd = ' AND ';
         }
-        if (is_string($data_data_uniao)) {
-            $where .= "{$whereAnd}data_uniao =  '$data_data-uniao'";
-            $whereAnd = ' AND ';
-        }
         if (is_string($data_data_obito)) {
             $where .= "{$whereAnd}data_obito =  '$data_data_obito'";
             $whereAnd = ' AND ';
@@ -814,10 +826,6 @@ class clsFisica
         }
         if (is_numeric($int_idpais_estrangeiro)) {
             $where .= "{$whereAnd}idpais_estrangeiro =  '$int_idpais_estrangeiro'";
-            $whereAnd = ' AND ';
-        }
-        if (is_string($data_data_chegada_brasil)) {
-            $where .= "{$whereAnd}data_chegada_brasil =  '$data_data_chegada_brasil'";
             $whereAnd = ' AND ';
         }
         if (is_numeric($int_idmun_nascimento)) {
@@ -865,7 +873,7 @@ class clsFisica
         if (is_array($arrayint_idisin)) {
             $ok = true;
             foreach ($arrayint_idisin as $val) {
-                if (! is_numeric($val)) {
+                if (!is_numeric($val)) {
                     $ok = false;
                 }
             }
@@ -878,7 +886,7 @@ class clsFisica
         if (is_array($arrayint_idnotin)) {
             $ok = true;
             foreach ($arrayint_idnotin as $val) {
-                if (! is_numeric($val)) {
+                if (!is_numeric($val)) {
                     $ok = false;
                 }
             }
@@ -949,7 +957,6 @@ class clsFisica
         $resultado = [];
         while ($db->ProximoRegistro()) {
             $tupla = $db->Tupla();
-            $tupla['idesco'] =  $tupla['idesco'];
             $tupla['ideciv'] = new clsEstadoCivil($tupla['ideciv']);
             $tupla['idocup'] = new clsOcupacao($tupla['idocup']);
 
@@ -972,7 +979,7 @@ class clsFisica
     {
         if ($this->idpes) {
             $db = new clsBanco();
-            $db->Consulta("SELECT fisica.idpes, data_nasc, sexo, idpes_mae, idpes_pai, idpes_responsavel, idesco, ideciv, idpes_con, data_uniao, data_obito, nacionalidade, idpais_estrangeiro, data_chegada_brasil, idmun_nascimento, ultima_empresa, idocup, nome_mae, nome_pai, nome_conjuge, nome_responsavel, justificativa_provisorio, cpf , ref_cod_religiao, sus, nis_pis_pasep, ocupacao, empresa, ddd_telefone_empresa, telefone_empresa, pessoa_contato, data_admissao, renda_mensal, falecido, ativo, data_exclusao, zona_localizacao_censo, nome, nome_social, pais_residencia, localizacao_diferenciada FROM {$this->schema}.{$this->tabela}
+            $db->Consulta("SELECT fisica.idpes, data_nasc, sexo, idpes_mae, idpes_pai, idpes_responsavel, idesco, ideciv, idpes_con, data_uniao, data_obito, nacionalidade, idpais_estrangeiro, data_chegada_brasil, idmun_nascimento, ultima_empresa, idocup, nome_mae, nome_pai, nome_conjuge, nome_responsavel, justificativa_provisorio, cpf , ref_cod_religiao, sus, nis_pis_pasep, ocupacao, empresa, ddd_telefone_empresa, telefone_empresa, pessoa_contato, data_admissao, renda_mensal, falecido, ativo, data_exclusao, zona_localizacao_censo, nome, nome_social, pais_residencia, localizacao_diferenciada, observacao FROM {$this->schema}.{$this->tabela}
             INNER JOIN cadastro.pessoa ON (pessoa.idpes = fisica.idpes) WHERE fisica.idpes = {$this->idpes}");
             if ($db->ProximoRegistro()) {
                 $tupla = $db->Tupla();

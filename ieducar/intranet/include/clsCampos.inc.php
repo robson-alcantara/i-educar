@@ -1,9 +1,5 @@
 <?php
 
-require_once 'Core/Controller/Page/Abstract.php';
-require_once 'App/Model/NivelTipoUsuario.php';
-require_once 'include/pmieducar/clsPermissoes.inc.php';
-
 class clsCampos extends Core_Controller_Page_Abstract
 {
     public $campos = [];
@@ -57,7 +53,7 @@ class clsCampos extends Core_Controller_Page_Abstract
 
     public function campoTabelaFim()
     {
-        if (count($this->__campos_tabela) && is_array($this->__campos_tabela)) {
+        if (is_array($this->__campos_tabela) && count($this->__campos_tabela)) {
             $this->campos['tab_add_' . $this->__id_tabela][] = $this->__campos_tabela;
             $this->campos['tab_add_' . $this->__id_tabela]['cabecalho'] = $this->__cabecalho_tabela;
             $this->campos['tab_add_' . $this->__id_tabela]['nome'] = $this->__nm_tabela;
@@ -188,7 +184,7 @@ class clsCampos extends Core_Controller_Page_Abstract
         $arr_componente = [
             'cnpj',
             $this->__adicionando_tabela ? $nome : $campo,
-            $obrigatorio ? "/[0-9]{2}\.[0-9]{3}\.[0-9]{3}\/[0-9]{4}\-[0-9]{2}/" : "*(/[0-9]{2}\.[0-9]{3}\.[0-9]{3}\/[0-9]{4}\-[0-9]{2}/)",
+            $obrigatorio ? "/[0-9]{2}\.[0-9]{3}\.[0-9]{3}\/[0-9]{4}\-[0-9]{2}/" : '',
             $valor,
             20,
             18,
@@ -833,6 +829,7 @@ class clsCampos extends Core_Controller_Page_Abstract
 
         reset($arr_campos);
         $campo_anterior = '';
+        $nome_anterior = '';
         $md = true;
 
         if (!is_null($start_md) && is_bool($start_md)) {
@@ -1109,7 +1106,7 @@ class clsCampos extends Core_Controller_Page_Abstract
                     $retorno .= "<td class='formmdtd' id='td_$cabId' align='center'><span class='form'>$cab</span>{$obrigatorio}</td>";
                 }
 
-                $retorno .= '<td class=\'formmdtd\' id=\'td_acao\' align=\'center\'><span class=\'form\'>A&ccedil;&atilde;o</span></td>';
+                $retorno .= '<td class=\'formmdtd\' id=\'td_acao\' align=\'center\'><span class=\'form\'>Ação</span></td>';
                 $retorno .= '</tr>';
 
                 $click = "$nome_add.removeRow(this);";
@@ -1117,7 +1114,7 @@ class clsCampos extends Core_Controller_Page_Abstract
                 $img = '<img src="/intranet/imagens/banco_imagens/excluirrr.png" border="0" alt="excluir" />';
                 $md2 = false;
 
-                if (!count($valores)) {
+                if (empty($valores)) {
                     $valores[0] = '';
                 }
 
@@ -1179,8 +1176,9 @@ class clsCampos extends Core_Controller_Page_Abstract
                                     $lista = array_shift($array_valores_lista);
                                 }
 
-                                $lista = (sizeof($lista)) ?
-                                    $lista : $campo_[3];
+                                $lista = is_array($lista) && sizeof($lista) ? $lista : $campo_[3];
+
+
 
                                 $retorno .= $this->getCampoLista("{$nome}[{$key2}]", "{$nome}[$key2]", $campo_[5], $lista, $valor[$key], $campo_[7], $campo_[8], $class, $campo_[9]);
                                 break;
@@ -1290,10 +1288,11 @@ class clsCampos extends Core_Controller_Page_Abstract
                     $campo = $componente[1] . "{$componente['separador']}";
                 }
 
-                if (($campo == $campo_anterior) && ($campo != '-:')) {
+                if (($campo == $campo_anterior) && ($campo != '-:') && $nome == $nome_anterior) {
                     $campo = '';
                 } else {
                     $campo_anterior = $campo;
+                    $nome_anterior = $nome;
 
                     if (!$foiDuplo) {
                         $md = !$md;
@@ -1583,7 +1582,7 @@ class clsCampos extends Core_Controller_Page_Abstract
                         $retorno .= "<select onchange=\"{$componente[5]}\" class='{$class}' name='{$nome}' id='{$nome}' {$componente[11]}>";
                         reset($componente[3]);
 
-                        while (list($chave, $texto) = each($componente[3])) {
+                        foreach ($componente[3] as $chave => $texto) {
                             $retorno .= "<option id=\"{$nome}_" . urlencode($chave) . '" value="' . urlencode($chave) . '"';
 
                             if ($chave == $componente[4]) {
@@ -1611,9 +1610,9 @@ class clsCampos extends Core_Controller_Page_Abstract
 
                     case 'listaDupla':
                         $retorno .= "<select onchange=\"{$componente[5]}\"  class='{$class}' name='{$nome}' id='{$nome}' {$componente[8]}>";
-                        reset($componente[3]);
 
-                        while (list($chave, $texto) = each($componente[3])) {
+                        reset($componente[3]);
+                        foreach ($componente[3] as $chave => $texto) {
                             $retorno .= '<option value="' . urlencode($chave) . '"';
 
                             if ($chave == $componente[4]) {
@@ -1622,6 +1621,7 @@ class clsCampos extends Core_Controller_Page_Abstract
 
                             $retorno .= ">$texto</option>";
                         }
+
 
                         $retorno .= '</select>';
                         $foiDuplo = true;
@@ -1637,10 +1637,6 @@ class clsCampos extends Core_Controller_Page_Abstract
 
                         break;
 
-                    case 'email':
-                        $retorno .= '<a href=\'www.google.com.br\' class=\'linkBory\'>Enviar Por Email</a>';
-                        break;
-
                     case 'emailDuplo':
                         $retorno .= "<input class='{$class}' type='text' name=\"{$nome}\" id=\"{$nome}\" value=\"{$componente[3]}\" size=\"{$componente[4]}\" maxlength=\"{$componente[5]}\" onKeyUp=\"{$componente[8]}\">";
                         $foiDuplo = true;
@@ -1649,11 +1645,11 @@ class clsCampos extends Core_Controller_Page_Abstract
                     case 'radio':
                         $primeiro = true;
 
-                        reset($componente[3]);
 
                         $retorno .= "<span onclick=\"{$componente[5]}\" >";
 
-                        while (list($chave, $texto) = each($componente[3])) {
+                        reset($componente[3]);
+                        foreach ($componente[3] as $chave => $texto) {
                             if ($primeiro) {
                                 $primeiro = false;
                                 $id = "id=\"{$nome}\"";
@@ -1792,12 +1788,12 @@ class clsCampos extends Core_Controller_Page_Abstract
 
     public function getCampoLista(
         $nome,
-        $id = '',
-        $acao = '',
+        $id,
+        $acao,
         $valor,
         $default,
-        $complemento = '',
-        $desabilitado = false,
+        $complemento,
+        $desabilitado,
         $class,
         $multiple = false
     ) {
@@ -1812,12 +1808,11 @@ class clsCampos extends Core_Controller_Page_Abstract
         $retorno = "<select onchange=\"{$acao}\" class='{$class}' name='{$nome}' id='{$id}' {$desabilitado} $multiple>";
         $opt_open = false;
 
-        reset($valor);
-
         $adicionador_indice = null;
 
-        while (list($chave, $texto) = each($valor)) {
-            if (substr($texto, 0, 9) == 'optgroup:') {
+        reset($valor);
+        foreach ($valor as $chave => $texto) {
+            if (str_starts_with($texto, 'optgroup:')) {
                 // optgroup
                 if ($opt_open) {
                     $retorno .= '</optgroup>';
@@ -1848,13 +1843,13 @@ class clsCampos extends Core_Controller_Page_Abstract
 
     public function getCampoMonetario(
         $nome,
-        $id = '',
-        $valor = '',
+        $id,
+        $valor,
         $tamanhovisivel,
         $tamanhomaximo,
-        $disabled = false,
-        $descricao = '',
-        $descricao2 = '',
+        $disabled,
+        $descricao,
+        $descricao2,
         $class,
         $evento = 'onChange',
         $script = ''
@@ -1876,8 +1871,8 @@ class clsCampos extends Core_Controller_Page_Abstract
 
     public function getCampoHora(
         $nome,
-        $id = '',
-        $valor = '',
+        $id,
+        $valor,
         $class,
         $tamanhovisivel,
         $tamanhomaximo,
@@ -1896,9 +1891,9 @@ class clsCampos extends Core_Controller_Page_Abstract
         return "<span class=\"form\"> $valor</span>";
     }
 
-    public function getCampoCheck($nome, $id = '', $valor, $desc = '', $script = false, $disabled = false)
+    public function getCampoCheck($nome, $id, $valor, $desc = '', $script = false, $disabled = false)
     {
-        $id = $id ? $id : $nome;
+        $id = $id ?: $nome;
 
         $onClick = '';
 
@@ -1923,16 +1918,16 @@ class clsCampos extends Core_Controller_Page_Abstract
         return $retorno;
     }
 
-    public function getCampoCNPJ($nome, $id = '', $valor, $class, $tamanhovisivel, $tamanhomaximo)
+    public function getCampoCNPJ($nome, $id, $valor, $class, $tamanhovisivel, $tamanhomaximo)
     {
-        $id = $id ? $id : $nome;
+        $id = $id ?: $nome;
 
         return "<input onKeyPress=\"formataCNPJ(this, event);\" class='{$class}' type='text' name=\"{$nome}\" id=\"{$id}\" value=\"{$valor}\" size=\"{$tamanhovisivel}\" maxlength=\"{$tamanhomaximo}\">";
     }
 
-    public function getCampoCPF($nome, $id = '', $valor, $class, $tamanhovisivel, $tamanhomaximo, $disabled = false, $onChange = '')
+    public function getCampoCPF($nome, $id, $valor, $class, $tamanhovisivel, $tamanhomaximo, $disabled = false, $onChange = '')
     {
-        $id = $id ? $id : $nome;
+        $id = $id ?: $nome;
 
         if ($disabled) {
             $disabled = 'disabled=\'disabled\'';
@@ -1945,14 +1940,14 @@ class clsCampos extends Core_Controller_Page_Abstract
 
     public function getCampoIdFederal(
         $nome,
-        $id = '',
+        $id,
         $valor,
         $class,
         $tamanhovisivel,
         $tamanhomaximo,
         $disabled = false
     ) {
-        $id = $id ? $id : $nome;
+        $id = $id ?: $nome;
 
         if ($disabled) {
             $disabled = 'disabled=\'disabled\'';
@@ -1974,17 +1969,16 @@ class clsCampos extends Core_Controller_Page_Abstract
         return "<input name='$nome' id='$id' type='hidden' value='{$valor}'>\n";
     }
 
-    public function getCampoData($nome, $id = '', $valor, $class, $tamanhovisivel, $tamanhomaximo, $disabled = false)
+    public function getCampoData($nome, $id, $valor, $class, $tamanhovisivel, $tamanhomaximo, $disabled = false)
     {
-        if ($disabled) {
-            $disabled = 'disabled=\'disabled\'';
-        } else {
-            $disabled = '';
+        $campoDisabled = '';
+        if ($disabled !== false) {
+            $campoDisabled = 'disabled=\'disabled\'';
         }
 
-        $id = $id ? $id : $nome;
+        $id = $id ?: $nome;
 
-        return "<input onKeyPress=\"formataData(this, event);\" class='{$class}' type='text' name=\"{$nome}\" id=\"{$id}\" value=\"{$valor}\" size=\"{$tamanhovisivel}\" maxlength=\"{$tamanhomaximo}\" {$disabled}> \n";
+        return "<input onKeyPress=\"formataData(this, event);\" class='{$class}' type='text' name=\"{$nome}\" id=\"{$id}\" value=\"{$valor}\" size=\"{$tamanhovisivel}\" maxlength=\"{$tamanhomaximo}\" {$campoDisabled}> \n";
     }
 
     public function getCampoCep(
@@ -2017,12 +2011,12 @@ class clsCampos extends Core_Controller_Page_Abstract
      */
     public function getCampoTextoPesquisa(
         $nome,
-        $id = '',
+        $id,
         $valor,
         $class,
         $tamanhovisivel,
         $tamanhomaximo,
-        $disabled = false,
+        $disabled,
         $caminho,
         $campos_serializados = null,
         $descricao = null,
@@ -2035,7 +2029,7 @@ class clsCampos extends Core_Controller_Page_Abstract
             $disabled = '';
         }
 
-        $id = $id ? $id : $nome;
+        $id = $id ?: $nome;
 
         $retorno = "<input class='{$class}' type='text' name=\"{$nome}\" id=\"{$id}\" value=\"{$valor}\" size=\"{$tamanhovisivel}\" maxlength=\"{$tamanhomaximo}\" {$evento}='{$script}' {$disabled}> ";
 

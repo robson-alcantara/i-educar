@@ -1,12 +1,5 @@
 <?php
 
-require_once 'Portabilis/Controller/ApiCoreController.php';
-require_once 'Portabilis/Array/Utils.php';
-require_once 'Portabilis/String/Utils.php';
-require_once 'Portabilis/Array/Utils.php';
-require_once 'Portabilis/Date/Utils.php';
-require_once 'include/pmieducar/geral.inc.php';
-
 class SerieController extends ApiCoreController
 {
     protected function canGetSeries()
@@ -19,8 +12,9 @@ class SerieController extends ApiCoreController
         if ($this->canGetSeries()) {
             $instituicaoId = $this->getRequest()->instituicao_id;
             $escolaId = $this->getRequest()->escola_id ?: null;
+            $ano = $this->getRequest()->ano ?: null;
             $cursoId = $this->getRequest()->curso_id;
-            $modified = $this->getRequest()->modified ?: null;
+            $ativo = $this->getRequest()->ativo;
 
             if (is_array($escolaId)) {
                 $escolaId = implode(',', $escolaId);
@@ -32,32 +26,34 @@ class SerieController extends ApiCoreController
 
             $params = [$instituicaoId];
 
-            $sql = "SELECT distinct 
-                    s.cod_serie, 
-                    s.nm_serie, 
+            $sql = 'SELECT distinct
+                    s.cod_serie,
+                    s.nm_serie,
+                    s.descricao,
                     s.idade_ideal,
                     s.ref_cod_curso,
                     (
                         CASE s.updated_at >= es.updated_at WHEN TRUE THEN
                             s.updated_at
-                        ELSE 
+                        ELSE
                             es.updated_at
-                        END 
+                        END
                     ) AS updated_at,
                     (
-                        CASE s.ativo WHEN 1 THEN 
-                            NULL 
-                        ELSE 
+                        CASE s.ativo WHEN 1 THEN
+                            NULL
+                        ELSE
                             s.data_exclusao::timestamp(0)
                         END
                     ) AS deleted_at
                 FROM pmieducar.serie s
                 INNER JOIN pmieducar.escola_serie es ON es.ref_cod_serie = s.cod_serie
                 INNER JOIN pmieducar.curso c ON s.ref_cod_curso = c.cod_curso
-                WHERE TRUE 
+                WHERE TRUE
                 AND c.ref_cod_instituicao = $1
                 AND c.ativo = 1
-            ";
+                AND es.ativo = 1
+            ';
 
             if ($escolaId) {
                 $sql .= " AND es.ref_cod_escola IN ({$escolaId}) ";
@@ -67,17 +63,26 @@ class SerieController extends ApiCoreController
                 $sql .= " AND c.cod_curso IN ({$cursoId}) ";
             }
 
+            if ($ano) {
+                $sql .= " AND {$ano} = any(es.anos_letivos) ";
+            }
+
+            if ($ativo) {
+                $sql .= " AND s.ativo = {$ativo} ";
+            }
+
             if ($modified) {
                 $params[] = $modified;
                 $sql .= ' AND (s.updated_at >= $2 OR es.updated_at >= $2)';
             }
 
-            $sql .= " ORDER BY updated_at, s.nm_serie ASC";
+            $sql .= ' ORDER BY updated_at, s.nm_serie ASC';
 
             $series = $this->fetchPreparedQuery($sql, $params);
 
             foreach ($series as &$serie) {
-                $serie['nm_serie'] = mb_strtoupper($serie['nm_serie'], 'UTF-8');
+                $nomeSerie = empty($serie['descricao']) ? $serie['nm_serie'] : "{$serie['nm_serie']} ({$serie['descricao']})";
+                $serie['nm_serie'] = mb_strtoupper($nomeSerie, 'UTF-8');
             }
 
             $attrs = [
@@ -138,7 +143,7 @@ class SerieController extends ApiCoreController
                     FROM pmieducar.serie s
                     INNER JOIN pmieducar.escola_serie es ON es.ref_cod_serie = s.cod_serie
                     INNER JOIN pmieducar.escola e ON e.cod_escola = es.ref_cod_escola
-                    INNER JOIN pmieducar.escola_curso ec ON ec.ref_cod_escola = e.cod_escola 
+                    INNER JOIN pmieducar.escola_curso ec ON ec.ref_cod_escola = e.cod_escola
                     INNER JOIN pmieducar.curso c ON c.cod_curso = ec.ref_cod_curso
                         AND c.cod_curso = s.ref_cod_curso
                     WHERE true
@@ -159,7 +164,7 @@ class SerieController extends ApiCoreController
                 FROM pmieducar.serie s
                 INNER JOIN pmieducar.escola_serie es ON es.ref_cod_serie = s.cod_serie
                 INNER JOIN pmieducar.escola e ON e.cod_escola = es.ref_cod_escola
-                INNER JOIN pmieducar.escola_curso ec ON ec.ref_cod_escola = e.cod_escola 
+                INNER JOIN pmieducar.escola_curso ec ON ec.ref_cod_escola = e.cod_escola
                 INNER JOIN pmieducar.curso c ON c.cod_curso = ec.ref_cod_curso
                     AND c.cod_curso = s.ref_cod_curso
                 WHERE true
@@ -189,7 +194,7 @@ class SerieController extends ApiCoreController
     {
         $cursoId = $this->getRequest()->curso_id;
 
-        $sql = 'SELECT distinct s.cod_serie, s.nm_serie
+        $sql = 'SELECT distinct s.cod_serie, s.nm_serie, s.descricao
               FROM pmieducar.serie s
               WHERE s.ativo = 1
               AND s.ref_cod_curso = $1
@@ -199,7 +204,8 @@ class SerieController extends ApiCoreController
         $series = $this->fetchPreparedQuery($sql, $params);
 
         foreach ($series as &$serie) {
-            $serie['nm_serie'] = mb_strtoupper($serie['nm_serie'], 'UTF-8');
+            $nomeSerie = empty($serie['descricao']) ? $serie['nm_serie'] : "{$serie['nm_serie']} ({$serie['descricao']})";
+            $serie['nm_serie'] = mb_strtoupper($nomeSerie, 'UTF-8');
         }
 
         $attrs = [
@@ -227,6 +233,7 @@ class SerieController extends ApiCoreController
             $seriePorCurso[$serie['cod_curso']]['nome'] = $serie['nm_curso'];
             $seriePorCurso[$serie['cod_curso']]['series'][$serie['id']] = $serie['nome'];
         }
+
         return ['options' => $seriePorCurso ];
     }
 

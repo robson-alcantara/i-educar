@@ -10,31 +10,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\URL;
 
-require_once 'include/clsBase.inc.php';
-require_once 'include/clsDetalhe.inc.php';
-require_once 'include/clsBanco.inc.php';
-require_once 'include/pmieducar/geral.inc.php';
-require_once 'include/modules/clsModulesFichaMedicaAluno.inc.php';
-require_once 'include/modules/clsModulesMoradiaAluno.inc.php';
-require_once 'App/Model/ZonaLocalizacao.php';
-require_once 'Educacenso/Model/AlunoDataMapper.php';
-require_once 'Transporte/Model/AlunoDataMapper.php';
-require_once 'include/pessoa/clsCadastroFisicaFoto.inc.php';
-require_once 'Portabilis/View/Helper/Application.php';
-require_once 'Portabilis/Utils/CustomLabel.php';
-require_once 'lib/Portabilis/Date/Utils.php';
-
-class clsIndexBase extends clsBase
-{
-    public function Formular()
-    {
-        $this->SetTitulo($this->_instituicao . ' i-Educar - Aluno');
-        $this->processoAp = 578;
-    }
-}
-
-class indice extends clsDetalhe
-{
+return new class extends clsDetalhe {
     public $titulo;
     public $cod_aluno;
     public $ref_idpes_responsavel;
@@ -105,7 +81,7 @@ class indice extends clsDetalhe
                 $caminhoFoto = $detalheFoto['caminho'];
             }
 
-            $registro['nome_aluno'] = strtoupper($det_pessoa_fj['nome']);
+            $registro['nome_aluno'] = mb_strtoupper($det_pessoa_fj['nome']);
             $registro['cpf'] = int2IdFederal($det_fisica['cpf']);
             $registro['data_nasc'] = Portabilis_Date_Utils::pgSQLToBr($det_fisica['data_nasc']);
 
@@ -303,7 +279,7 @@ class indice extends clsDetalhe
         }
 
         if ($det_fisica['nome_social']) {
-            $this->addDetalhe(['Nome Social', strtoupper($det_fisica['nome_social'])]);
+            $this->addDetalhe(['Nome social e/ou afetivo', mb_strtoupper($det_fisica['nome_social'])]);
         }
 
         if (idFederal2int($registro['cpf'])) {
@@ -424,8 +400,8 @@ class indice extends clsDetalhe
             $this->addDetalhe(['Página Pessoal', $registro['url']]);
         }
 
-        if ($registro['ref_cod_religiao']) {
-            $obj_religiao = new clsPmieducarReligiao($registro['ref_cod_religiao']);
+        if ($det_fisica['ref_cod_religiao']) {
+            $obj_religiao = new clsPmieducarReligiao($det_fisica['ref_cod_religiao']);
             $obj_religiao_det = $obj_religiao->detalhe();
 
             $this->addDetalhe(['Religião', $obj_religiao_det['nm_religiao']]);
@@ -485,7 +461,7 @@ class indice extends clsDetalhe
                         align=\'center\'>
                           <td>
                             <a href=\'' . $this->urlPresigner()->getPresignedUrl($documento->url) . '\'
-                               target=\'_blank\' > Visualizar documento ' . (count($documento) > 1 ? ($key + 1) : '') . '
+                               target=\'_blank\' > Visualizar documento ' . (count((array)$documento) > 1 ? ($key + 1) : '') . '
                             </a>
                           </td>
                     </tr>';
@@ -527,9 +503,6 @@ class indice extends clsDetalhe
             $this->addDetalhe(['Estado Expedidor', $registro['sigla_uf_exp_rg']]);
         }
 
-        /**
-         * @todo CoreExt_Enum?
-         */
         if (!$registro['tipo_cert_civil'] && $registro['certidao_nascimento']) {
             $this->addDetalhe(['Tipo Certidão Civil', 'Nascimento (novo formato)']);
             $this->addDetalhe(['Número Certidão Civil', $registro['certidao_nascimento']]);
@@ -588,7 +561,7 @@ class indice extends clsDetalhe
         $transporteAluno = null;
         try {
             $transporteAluno = $transporteMapper->find(['aluno' => $this->cod_aluno]);
-        } catch (Exception $e) {
+        } catch (Exception) {
         }
 
         $this->addDetalhe([
@@ -603,12 +576,7 @@ class indice extends clsDetalhe
             $this->addDetalhe(['NIS', $registro['nis_pis_pasep']]);
         }
 
-        // Verifica se o usuário tem permissão para cadastrar um aluno.
-        // O sistema irá validar o cadastro de permissões e o parâmetro
-        // "bloquear_cadastro_aluno" da instituição.
-
         if ($this->obj_permissao->permissao_cadastra(578, $this->pessoa_logada, 7)) {
-
             $bloquearCadastroAluno = dbBool($configuracoes['bloquear_cadastro_aluno']);
 
             if ($bloquearCadastroAluno == false) {
@@ -623,6 +591,26 @@ class indice extends clsDetalhe
                 sprintf('go("educar_historico_escolar_lst.php?ref_cod_aluno=%d");', $registro['cod_aluno']),
                 sprintf('go("educar_distribuicao_uniforme_lst.php?ref_cod_aluno=%d");', $registro['cod_aluno'])
             ];
+
+            if ($titulo = config('legacy.app.alunos.sistema_externo.titulo')) {
+                $link = config('legacy.app.alunos.sistema_externo.link');
+                $token = config('legacy.app.alunos.sistema_externo.token');
+
+                $link = "go(\"{$link}\")";
+
+                $link = str_replace([
+                    '@aluno',
+                    '@usuario',
+                    '@token',
+                ], [
+                    $registro['cod_aluno'],
+                    $this->user()->getKey(),
+                    $token,
+                ], $link);
+
+                array_unshift($this->array_botao, $titulo);
+                array_unshift($this->array_botao_url_script, $link);
+            }
         }
 
         $objFichaMedica = new clsModulesFichaMedicaAluno($this->cod_aluno);
@@ -771,6 +759,8 @@ class indice extends clsDetalhe
                 ]);
                 $this->addDetalhe(['Quantidade de camisetas (manga curta)', $reg['camiseta_curta_qtd'] ?: '0']);
                 $this->addDetalhe(['Quantidade de camisetas (manga longa)', $reg['camiseta_longa_qtd'] ?: '0']);
+                $this->addDetalhe(['Quantidade de camisetas infantis (sem manga)', $reg['camiseta_infantil_qtd'] ?: '0']);
+                $this->addDetalhe(['Quantidade de calça jeans', $reg['calca_jeans_qtd'] ?: '0']);
                 $this->addDetalhe(['Quantidade de meias', $reg['meias_qtd'] ?: '0']);
                 $this->addDetalhe(['Bermudas tectels (masculino)', $reg['bermudas_tectels_qtd'] ?: '0']);
                 $this->addDetalhe(['Bermudas coton (feminino)', $reg['bermudas_coton_qtd'] ?: '0']);
@@ -812,7 +802,6 @@ class indice extends clsDetalhe
             }
 
             $this->addDetalhe(['<span id="fmoradia"></span>Moradia', $moradia]);
-            $situacao;
 
             switch ($reg['moradia_situacao']) {
                 case 1:
@@ -850,7 +839,9 @@ class indice extends clsDetalhe
             $this->addDetalhe(['Possui telefone', $reg['telefone']]);
 
             $recursosTecnlogicos = json_decode($reg['recursos_tecnologicos']);
-            $recursosTecnlogicos = implode(", ", $recursosTecnlogicos);
+            if (is_array($recursosTecnlogicos)) {
+                $recursosTecnlogicos = implode(', ', $recursosTecnlogicos);
+            }
             $this->addDetalhe(['Possui acesso à recursos técnologicos?', $recursosTecnlogicos]);
 
             $this->addDetalhe(['Quantidade de pessoas', $reg['quant_pessoas']]);
@@ -949,16 +940,10 @@ class indice extends clsDetalhe
 
         return $this->urlPresigner;
     }
-}
 
-// Instancia o objeto da página
-$pagina = new clsIndexBase();
-
-// Instancia o objeto de conteúdo
-$miolo = new indice();
-
-// Passa o conteúdo para a página
-$pagina->addForm($miolo);
-
-// Gera o HTML
-$pagina->MakeAll();
+    public function Formular()
+    {
+        $this->title = 'Aluno';
+        $this->processoAp = 578;
+    }
+};

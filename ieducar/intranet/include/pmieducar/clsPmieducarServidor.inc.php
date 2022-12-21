@@ -2,8 +2,6 @@
 
 use iEducar\Legacy\Model;
 
-require_once 'include/pmieducar/geral.inc.php';
-
 class clsPmieducarServidor extends Model
 {
     public $cod_servidor;
@@ -158,8 +156,8 @@ class clsPmieducarServidor extends Model
     {
         if (is_numeric($this->cod_servidor) && is_numeric($this->ref_cod_instituicao)) {
             $db = new clsBanco();
-            $set = '';
             $gruda = '';
+            $set = '';
 
             if (is_numeric($this->ref_idesco)) {
                 $set .= "{$gruda}ref_idesco = '{$this->ref_idesco}'";
@@ -538,6 +536,8 @@ class clsPmieducarServidor extends Model
           FROM pmieducar.servidor_alocacao a
           WHERE $where
           AND a.periodo = 1
+          AND a.ano = $ano_alocacao
+          AND (a.data_saida > now() or a.data_saida is null)
           AND a.carga_horaria >= COALESCE(
           (SELECT SUM(qhh.hora_final - qhh.hora_inicial)
             FROM pmieducar.quadro_horario_horarios qhh
@@ -571,6 +571,8 @@ class clsPmieducarServidor extends Model
       {$whereAnd} (s.cod_servidor NOT IN (SELECT a.ref_cod_servidor
               FROM pmieducar.servidor_alocacao a
               WHERE $where
+              AND a.ano = $ano_alocacao
+              AND (a.data_saida > now() or a.data_saida is null)
               AND a.periodo = 1) OR s.multi_seriado )";
                     }
                 }
@@ -582,6 +584,8 @@ class clsPmieducarServidor extends Model
                 FROM pmieducar.servidor_alocacao a
                 WHERE $where
                 AND a.periodo = 2
+                AND a.ano = $ano_alocacao
+                AND (a.data_saida > now() or a.data_saida is null)
                 AND a.carga_horaria >= COALESCE(
                   (SELECT SUM( qhh.hora_final - qhh.hora_inicial )
                   FROM pmieducar.quadro_horario_horarios qhh
@@ -627,6 +631,8 @@ class clsPmieducarServidor extends Model
       {$whereAnd} (s.cod_servidor NOT IN ( SELECT a.ref_cod_servidor
               FROM pmieducar.servidor_alocacao a
               WHERE $where
+              AND a.ano = $ano_alocacao
+              AND (a.data_saida > now() or a.data_saida is null)
               AND a.periodo = 2 ) OR s.multi_seriado) ";
                     }
                 }
@@ -637,6 +643,8 @@ class clsPmieducarServidor extends Model
               FROM pmieducar.servidor_alocacao a
               WHERE $where
               AND a.periodo = 3
+              AND a.ano = $ano_alocacao
+              AND (a.data_saida > now() or a.data_saida is null)
               AND a.carga_horaria >= COALESCE(
               (SELECT SUM(qhh.hora_final - qhh.hora_inicial)
                 FROM pmieducar.quadro_horario_horarios qhh
@@ -671,6 +679,8 @@ class clsPmieducarServidor extends Model
             SELECT a.ref_cod_servidor
               FROM pmieducar.servidor_alocacao a
               WHERE $where
+              AND a.ano = $ano_alocacao
+              AND (a.data_saida > now() or a.data_saida is null)
               AND a.periodo = 3 ) OR s.multi_seriado) ";
                     }
                 }
@@ -705,14 +715,12 @@ class clsPmieducarServidor extends Model
                 $disciplinas = $servidorDisciplina->lista(null, null, $str_not_in_servidor);
                 $servidorDisciplinas = [];
                 if (is_array($disciplinas)) {
-                    foreach ($disciplinas as $disciplina) {
-                        $servidorDisciplinas[] = sprintf(
-                            '(sd.ref_cod_disciplina = %d AND sd.ref_cod_curso = %d)',
-                            $disciplina['ref_cod_disciplina'],
-                            $disciplina['ref_cod_curso']
-                        );
-                    }
-                    $servidorDisciplinas = sprintf('AND (%s)', implode(' AND ', $servidorDisciplinas));
+                    $codDisciplinas = array_column($disciplinas, 'ref_cod_disciplina');
+                    $codDisciplinas = implode(',', $codDisciplinas);
+                    $servidorDisciplinas = "
+                        group by sd.ref_cod_servidor
+                        having array[$codDisciplinas] <@ array_agg(sd.ref_cod_disciplina)
+                    ";
                 } else {
                     $servidorDisciplinas = '';
                 }
@@ -868,6 +876,7 @@ class clsPmieducarServidor extends Model
      * @return array Array associativo com a primeira chave sendo o código da
      *               função. O array interno contém o nome da função e se a função desempenha
      *               um papel de professor
+     *
      * @since   Método disponível desde a versão 1.0.2
      *
      */
@@ -903,6 +912,7 @@ class clsPmieducarServidor extends Model
      *
      * @return array|bool Array com códigos das disciplinas ordenados ou FALSE
      *                    caso o servidor não tenha disciplinas
+     *
      * @since   Método disponível desde a versão 1.0.2
      *
      */
@@ -941,6 +951,7 @@ class clsPmieducarServidor extends Model
      *                            informado, usa o código disponível no objeto atual
      *
      * @return array|bool (codServidor => (int), codInstituicao => (int))
+     *
      * @since   Método disponível desde a versão 1.2.0
      *
      */
@@ -970,6 +981,7 @@ class clsPmieducarServidor extends Model
      *
      * @return array|bool Array com códigos das disciplinas ordenados ou FALSE
      *                    caso o servidor não tenha disciplinas
+     *
      * @since   Método disponível desde a versão 1.0.2
      *
      */
@@ -1016,6 +1028,7 @@ class clsPmieducarServidor extends Model
      * @return array|bool Array associativo com os índices nm_escola, nm_curso,
      *                    nm_serie, nm_turma, nome (componente curricular), dia_semana,
      *                    qhh.hora_inicial e hora_final.
+     *
      * @since   Método disponível desde a versão 1.0.2
      *
      */
@@ -1080,6 +1093,7 @@ class clsPmieducarServidor extends Model
      * por um dos itens que tenha o índice professor igual a 1.
      *
      * @return bool TRUE caso o servidor desempenhe a função de professor
+     *
      * @since   Método disponível desde a versão 1.0.2
      *
      */

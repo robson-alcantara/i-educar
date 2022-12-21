@@ -1,13 +1,5 @@
 <?php
 
-require_once 'include/pmieducar/clsPermissoes.inc.php';
-require_once 'App/Model/IedFinder.php';
-require_once 'lib/Portabilis/View/Helper/Application.php';
-require_once 'lib/Portabilis/Array/Utils.php';
-require_once 'lib/Portabilis/String/Utils.php';
-require_once 'lib/Portabilis/Object/Utils.php';
-require_once 'lib/Portabilis/DataMapper/Utils.php';
-
 class Portabilis_View_Helper_Input_Core
 {
     public function __construct($viewInstance, $inputsHelper)
@@ -79,7 +71,6 @@ class Portabilis_View_Helper_Input_Core
         Portabilis_View_Helper_Application::loadStylesheet($this->viewInstance, $style);
 
         $dependencies = [
-            '/modules/Portabilis/Assets/Javascripts/Utils.js',
             '/modules/Portabilis/Assets/Javascripts/ClientApi.js',
             '/modules/Portabilis/Assets/Javascripts/Validator.js'
         ];
@@ -121,7 +112,7 @@ class Portabilis_View_Helper_Input_Core
 
     protected function getDataMapperFor($packageName, $modelName)
     {
-        return Portabilis_DataMapper_Utils::getDataMapperFor($packageName, $modelName);
+        return (new Portabilis_DataMapper_Utils())->getDataMapperFor($packageName, $modelName);
     }
 
     protected static function mergeOptions($options, $defaultOptions)

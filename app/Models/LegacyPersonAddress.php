@@ -2,16 +2,16 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * @deprecated
+ *
  * @property string $name
  */
 class LegacyPersonAddress extends Model
 {
-
     /**
      * @var string
      */

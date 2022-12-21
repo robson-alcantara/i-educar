@@ -2,15 +2,15 @@
 
 namespace Tests\Unit\Educacenso\Validator;
 
-use iEducar\Modules\Educacenso\Validator\DeficiencyValidator;
 use iEducar\Modules\Educacenso\Model\Deficiencias;
+use iEducar\Modules\Educacenso\Validator\DeficiencyValidator;
 use Tests\TestCase;
 
 class DeficiencyValidatorTest extends TestCase
 {
     public function testOnlyOneDeficiencyChoosed()
     {
-        $values = [ Deficiencias::CEGUEIRA ];
+        $values = [Deficiencias::CEGUEIRA];
         $validator = new DeficiencyValidator($values);
 
         $this->assertTrue($validator->isValid());
@@ -18,7 +18,7 @@ class DeficiencyValidatorTest extends TestCase
 
     public function testChooseCegueiraAndAllowedDeficiency()
     {
-        $values = [ Deficiencias::CEGUEIRA, Deficiencias::TRANSTORNO_ESPECTRO_AUTISTA ];
+        $values = [Deficiencias::CEGUEIRA, Deficiencias::TRANSTORNO_ESPECTRO_AUTISTA];
         $validator = new DeficiencyValidator($values);
 
         $this->assertTrue($validator->isValid());
@@ -34,7 +34,7 @@ class DeficiencyValidatorTest extends TestCase
 
         $randomIndex = array_rand($forbiddenDeficiencies);
 
-        $values = [ Deficiencias::CEGUEIRA, $forbiddenDeficiencies[$randomIndex] ];
+        $values = [Deficiencias::CEGUEIRA, $forbiddenDeficiencies[$randomIndex]];
         $validator = new DeficiencyValidator($values);
 
         $descriptions = Deficiencias::getDescriptiveValues();
@@ -48,7 +48,7 @@ class DeficiencyValidatorTest extends TestCase
 
     public function testChooseBaixaVisaoAndAllowedDeficiency()
     {
-        $values = [ Deficiencias::BAIXA_VISAO, Deficiencias::TRANSTORNO_ESPECTRO_AUTISTA ];
+        $values = [Deficiencias::BAIXA_VISAO, Deficiencias::TRANSTORNO_ESPECTRO_AUTISTA];
         $validator = new DeficiencyValidator($values);
 
         $this->assertTrue($validator->isValid());
@@ -60,7 +60,7 @@ class DeficiencyValidatorTest extends TestCase
             Deficiencias::SURDOCEGUEIRA,
         ];
 
-        $values = [ Deficiencias::BAIXA_VISAO, $forbiddenDeficiencies[0] ];
+        $values = [Deficiencias::BAIXA_VISAO, $forbiddenDeficiencies[0]];
         $validator = new DeficiencyValidator($values);
 
         $forbiddenDescriptions = $this->getDeficienciesDescriptions($forbiddenDeficiencies);
@@ -72,7 +72,7 @@ class DeficiencyValidatorTest extends TestCase
 
     public function testChooseSurdezAndAllowedDeficiency()
     {
-        $values = [ Deficiencias::SURDEZ, Deficiencias::TRANSTORNO_ESPECTRO_AUTISTA ];
+        $values = [Deficiencias::SURDEZ, Deficiencias::TRANSTORNO_ESPECTRO_AUTISTA];
         $validator = new DeficiencyValidator($values);
 
         $this->assertTrue($validator->isValid());
@@ -87,7 +87,7 @@ class DeficiencyValidatorTest extends TestCase
 
         $randomIndex = array_rand($forbiddenDeficiencies);
 
-        $values = [ Deficiencias::SURDEZ, $forbiddenDeficiencies[$randomIndex] ];
+        $values = [Deficiencias::SURDEZ, $forbiddenDeficiencies[$randomIndex]];
         $validator = new DeficiencyValidator($values);
 
         $descriptions = Deficiencias::getDescriptiveValues();
@@ -101,7 +101,7 @@ class DeficiencyValidatorTest extends TestCase
 
     public function testChooseDeficienciaAuditivaAndAllowedDeficiency()
     {
-        $values = [ Deficiencias::DEFICIENCIA_AUDITIVA, Deficiencias::TRANSTORNO_ESPECTRO_AUTISTA ];
+        $values = [Deficiencias::DEFICIENCIA_AUDITIVA, Deficiencias::TRANSTORNO_ESPECTRO_AUTISTA];
         $validator = new DeficiencyValidator($values);
 
         $this->assertTrue($validator->isValid());
@@ -113,7 +113,7 @@ class DeficiencyValidatorTest extends TestCase
             Deficiencias::SURDOCEGUEIRA,
         ];
 
-        $values = [ Deficiencias::DEFICIENCIA_AUDITIVA, $forbiddenDeficiencies[0] ];
+        $values = [Deficiencias::DEFICIENCIA_AUDITIVA, $forbiddenDeficiencies[0]];
         $validator = new DeficiencyValidator($values);
 
         $descriptions = Deficiencias::getDescriptiveValues();
@@ -129,7 +129,7 @@ class DeficiencyValidatorTest extends TestCase
     {
         $descriptions = Deficiencias::getDescriptiveValues();
 
-        $descriptions = array_filter($descriptions, function($key) use ($values){
+        $descriptions = array_filter($descriptions, function ($key) use ($values) {
             return in_array($key, $values);
         }, ARRAY_FILTER_USE_KEY);
 

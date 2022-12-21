@@ -2,24 +2,7 @@
 
 use App\Process;
 
-require_once 'include/clsBase.inc.php';
-require_once 'include/clsCadastro.inc.php';
-require_once 'include/clsBanco.inc.php';
-require_once 'include/pmieducar/geral.inc.php';
-require_once 'App/Model/MatriculaSituacao.php';
-
-class clsIndexBase extends clsBase
-{
-    public function Formular()
-    {
-        $this->SetTitulo("{$this->_instituicao} i-Educar - Bloqueio do ano letivo");
-
-        $this->processoAp = Process::ENROLLMENT_HISTORY;
-    }
-}
-
-class indice extends clsCadastro
-{
+return new class extends clsCadastro {
     public $ref_cod_matricula;
     public $ref_cod_turma;
     public $sequencial;
@@ -73,41 +56,19 @@ class indice extends clsCadastro
         $this->campoRotulo('nm_pessoa', 'Nome do Aluno', $enturmacao['nome']);
         $this->campoRotulo('sequencial', 'Sequencial', $enturmacao['sequencial']);
 
-        switch ($matricula['aprovado']) {
-            case 1:
-                $situacao = 'Aprovado';
-                break;
-            case 2:
-                $situacao = 'Reprovado';
-                break;
-            case 3:
-                $situacao = 'Cursando';
-                break;
-            case 4:
-                $situacao = 'Transferido';
-                break;
-            case 5:
-                $situacao = 'Reclassificado';
-                break;
-            case 6:
-                $situacao = 'Abandono';
-                break;
-            case 7:
-                $situacao = 'Em Exame';
-                break;
-            case 12:
-                $situacao = 'Aprovado com dependência';
-                break;
-            case 13:
-                $situacao = 'Aprovado pelo conselho';
-                break;
-            case 14:
-                $situacao = 'Reprovado por faltas';
-                break;
-            default:
-                $situacao = '';
-                break;
-        }
+        $situacao = match ((int)$matricula['aprovado']) {
+            1 => 'Aprovado',
+            2 => 'Reprovado',
+            3 => 'Cursando',
+            4 => 'Transferido',
+            5 => 'Reclassificado',
+            6 => 'Abandono',
+            7 => 'Em Exame',
+            12 => 'Aprovado com dependência',
+            13 => 'Aprovado pelo conselho',
+            14 => 'Reprovado por faltas',
+            default => '',
+        };
 
         $required = false;
 
@@ -237,10 +198,11 @@ class indice extends clsCadastro
 
         return false;
     }
-}
 
-$pagina = new clsIndexBase();
-$miolo = new indice();
+    public function Formular()
+    {
+        $this->title = 'Bloqueio do ano letivo';
 
-$pagina->addForm($miolo);
-$pagina->MakeAll();
+        $this->processoAp = Process::ENROLLMENT_HISTORY;
+    }
+};

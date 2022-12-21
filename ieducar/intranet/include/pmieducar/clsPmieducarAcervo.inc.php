@@ -2,8 +2,6 @@
 
 use iEducar\Legacy\Model;
 
-require_once 'include/pmieducar/geral.inc.php';
-
 class clsPmieducarAcervo extends Model
 {
     public $cod_acervo;
@@ -133,31 +131,31 @@ class clsPmieducarAcervo extends Model
                                   a.tipo_autor';
 
         if (is_numeric($ref_cod_biblioteca)) {
-                    $this->ref_cod_biblioteca = $ref_cod_biblioteca;
+            $this->ref_cod_biblioteca = $ref_cod_biblioteca;
         }
         if (is_numeric($ref_cod_exemplar_tipo)) {
-                    $this->ref_cod_exemplar_tipo = $ref_cod_exemplar_tipo;
+            $this->ref_cod_exemplar_tipo = $ref_cod_exemplar_tipo;
         }
         if (is_numeric($ref_cod_acervo)) {
-                    $this->ref_cod_acervo = $ref_cod_acervo;
+            $this->ref_cod_acervo = $ref_cod_acervo;
         } elseif ($ref_cod_acervo == 'NULL') {
             $this->ref_cod_acervo = 'NULL';
         }
 
         if (is_numeric($ref_usuario_cad)) {
-                    $this->ref_usuario_cad = $ref_usuario_cad;
+            $this->ref_usuario_cad = $ref_usuario_cad;
         }
         if (is_numeric($ref_usuario_exc)) {
-                    $this->ref_usuario_exc = $ref_usuario_exc;
+            $this->ref_usuario_exc = $ref_usuario_exc;
         }
         if (is_numeric($ref_cod_acervo_colecao)) {
-                    $this->ref_cod_acervo_colecao = $ref_cod_acervo_colecao;
+            $this->ref_cod_acervo_colecao = $ref_cod_acervo_colecao;
         }
         if (is_numeric($ref_cod_acervo_idioma)) {
-                    $this->ref_cod_acervo_idioma = $ref_cod_acervo_idioma;
+            $this->ref_cod_acervo_idioma = $ref_cod_acervo_idioma;
         }
         if (is_numeric($ref_cod_acervo_editora)) {
-                    $this->ref_cod_acervo_editora = $ref_cod_acervo_editora;
+            $this->ref_cod_acervo_editora = $ref_cod_acervo_editora;
         }
 
         if (is_numeric($cod_acervo)) {
@@ -388,6 +386,7 @@ class clsPmieducarAcervo extends Model
     {
         if (is_numeric($this->cod_acervo) && is_numeric($this->ref_usuario_exc)) {
             $db = new clsBanco();
+            $gruda = '';
             $set = '';
 
             if (is_numeric($this->ref_cod_exemplar_tipo)) {
@@ -605,22 +604,6 @@ class clsPmieducarAcervo extends Model
             $filtros .= "{$whereAnd} a.cutter LIKE $$%{$str_cutter}%$$";
             $whereAnd = ' AND ';
         }
-        if (is_numeric($int_volume)) {
-            $filtros .= "{$whereAnd} a.volume = '{$int_volume}'";
-            $whereAnd = ' AND ';
-        }
-        if (is_numeric($int_num_edicao)) {
-            $filtros .= "{$whereAnd} a.num_edicao = '{$int_num_edicao}'";
-            $whereAnd = ' AND ';
-        }
-        if (is_string($str_ano)) {
-            $filtros .= "{$whereAnd} a.ano = '{$str_ano}'";
-            $whereAnd = ' AND ';
-        }
-        if (is_numeric($int_num_paginas)) {
-            $filtros .= "{$whereAnd} a.num_paginas = '{$int_num_paginas}'";
-            $whereAnd = ' AND ';
-        }
         if (is_string($str_isbn)) {
             $filtros .= "{$whereAnd} a.isbn = '{$str_isbn}'";
             $whereAnd = ' AND ';
@@ -656,24 +639,14 @@ class clsPmieducarAcervo extends Model
             $filtros .= "{$whereAnd} a.ref_cod_biblioteca = '{$int_ref_cod_biblioteca}'";
             $whereAnd = ' AND ';
         }
-        if (is_numeric($int_ref_cod_instituicao)) {
-            $filtro .= "{$whereAnd} b.ref_cod_instituicao = '{$int_ref_cod_instituicao}'";
-            $whereAnd = ' AND ';
-        }
         if (is_numeric($int_ref_cod_escola)) {
-            $filtro .= "{$whereAnd} b.ref_cod_escola = '{$int_ref_cod_escola}'";
+            $filtros .= "{$whereAnd} b.ref_cod_escola = '{$int_ref_cod_escola}'";
             $whereAnd = ' AND ';
         }
         if (!empty($str_nm_autor)) {
             $filtros .= "{$whereAnd} aa.nm_autor LIKE $$%{$str_nm_autor}%$$";
             $whereAnd = ' AND ';
         }
-        /*else
-        {
-            $filtros .= "{$whereAnd} aaa.principal = '1'";
-            $whereAnd = " AND ";
-        }*/
-
         $db = new clsBanco();
         $countCampos = count(explode(',', $this->_campos_lista));
         $resultado = [];
@@ -729,6 +702,7 @@ class clsPmieducarAcervo extends Model
             'LEFT JOIN pmieducar.acervo_acervo_autor aaa ON (aaa.ref_cod_acervo = a.cod_acervo) ' .
             'LEFT JOIN pmieducar.acervo_autor aa ON (aa.cod_acervo_autor = aaa.ref_cod_acervo_autor)';
 
+        $filtros = '';
         $whereAnd = ' WHERE ';
         if (is_array($int_ref_cod_biblioteca)) {
             $bibs = implode(', ', $int_ref_cod_biblioteca);

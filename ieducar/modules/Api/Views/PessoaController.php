@@ -1,21 +1,12 @@
 <?php
 
+use App\Models\LegacyIndividual;
 use App\Models\PersonHasPlace;
 use iEducar\Modules\Addressing\LegacyAddressingFields;
-use iEducar\Modules\Educacenso\Validator\NameValidator;
+use iEducar\Modules\Educacenso\Model\Nacionalidade;
 use iEducar\Modules\Educacenso\Validator\BirthDateValidator;
 use iEducar\Modules\Educacenso\Validator\DifferentiatedLocationValidator;
-use App\Models\LegacyIndividual;
-use iEducar\Modules\Educacenso\Model\Nacionalidade;
-
-require_once 'lib/Portabilis/Controller/ApiCoreController.php';
-require_once 'lib/Portabilis/Array/Utils.php';
-require_once 'lib/Portabilis/String/Utils.php';
-require_once 'lib/Portabilis/Date/Utils.php';
-require_once 'include/pessoa/clsPessoa_.inc.php';
-require_once 'include/pessoa/clsFisica.inc.php';
-require_once 'include/pessoa/clsCadastroFisicaRaca.inc.php';
-require_once 'intranet/include/funcoes.inc.php';
+use iEducar\Modules\Educacenso\Validator\NameValidator;
 
 class PessoaController extends ApiCoreController
 {
@@ -144,7 +135,8 @@ class PessoaController extends ApiCoreController
               (SELECT fone_pessoa.ddd FROM cadastro.fone_pessoa WHERE fone_pessoa.idpes = $2 AND fone_pessoa.tipo = 1) as ddd_fone_fixo,
               (SELECT fone_pessoa.ddd FROM cadastro.fone_pessoa WHERE fone_pessoa.idpes = $2 AND fone_pessoa.tipo = 2) as ddd_fone_mov,
 
-             fisica.pais_residencia
+             fisica.pais_residencia,
+             fisica.sus
             from cadastro.fisica
             where idpes = $2';
 
@@ -199,6 +191,7 @@ class PessoaController extends ApiCoreController
             'nome_cartorio',
             'nome_social',
             'pais_residencia',
+            'sus',
         ];
 
         $details = Portabilis_Array_Utils::filter($details, $attrs);
@@ -484,6 +477,7 @@ class PessoaController extends ApiCoreController
 
         if (!$validator->isValid()) {
             $this->messenger->append($validator->getMessage());
+
             return false;
         }
 
@@ -500,6 +494,7 @@ class PessoaController extends ApiCoreController
 
         if (!$validator->isValid()) {
             $this->messenger->append($validator->getMessage());
+
             return false;
         }
 
@@ -512,6 +507,7 @@ class PessoaController extends ApiCoreController
 
         if (!$validator->isValid()) {
             $this->messenger->append($validator->getMessage());
+
             return false;
         }
 
@@ -538,7 +534,7 @@ class PessoaController extends ApiCoreController
     {
         $pessoa = new clsPessoa_();
         $pessoa->idpes = $pessoaId;
-        $pessoa->nome = Portabilis_String_Utils::toLatin1($this->getRequest()->nome);
+        $pessoa->nome = $this->getRequest()->nome;
 
         $sql = 'select 1 from cadastro.pessoa WHERE idpes = $1 limit 1';
 
@@ -576,7 +572,6 @@ class PessoaController extends ApiCoreController
         $individual->nome_social = $this->getRequest()->nome_social ?? $this->getRequest()->nome_social;
 
         $individual->saveOrFail();
-
 
         $raca = new clsCadastroFisicaRaca($pessoaId, $this->getRequest()->cor_raca);
         if ($raca->existe()) {
@@ -624,11 +619,30 @@ class PessoaController extends ApiCoreController
         return Portabilis_Utils_Database::selectField($sql, ['params' => [$servidorId]]);
     }
 
+    protected function existServant($servidorId)
+    {
+        $sql = 'SELECT 1 FROM pmieducar.servidor WHERE cod_servidor = $1';
+
+        return Portabilis_Utils_Database::selectField($sql, ['params' => [$servidorId]]);
+    }
+
     protected function getInfoServidor()
     {
         $servidorId = $this->getRequest()->servidor_id;
         $_servidor['inep'] = $this->getInep($servidorId);
         $_servidor['deficiencias'] = $this->loadDeficiencias($servidorId);
+
+        return $_servidor;
+    }
+
+    protected function isExistServant()
+    {
+        $id = (int) $this->getRequest()->servidor_id;
+        $exist = $this->existServant($id) === 1;
+
+        $_servidor['exist'] = $exist;
+        $_servidor['id'] = $id;
+        $_servidor['nome'] = $exist ? $this->loadPessoa($id)['nome'] : null;
 
         return $_servidor;
     }
@@ -642,6 +656,70 @@ class PessoaController extends ApiCoreController
         return $fisica;
     }
 
+    protected function dadosUnificacaoPessoa()
+    {
+        $pessoasIds = $this->getRequest()->pessoas_ids ?? 0;
+
+        $sql = 'SELECT
+                p.idpes,
+                concat_ws(\', \',
+                    CASE WHEN cod_aluno IS NOT NULL THEN \'Aluno(a)\' ELSE NULL end,
+                    CASE WHEN responsavel.idpes IS NOT NULL THEN \'Responsável\' ELSE NULL end,
+                    CASE WHEN cod_servidor IS NOT NULL THEN \'Servidor(a)\' ELSE NULL end,
+                    CASE WHEN cod_usuario IS NOT NULL THEN \'Usuário(a)\' ELSE NULL end
+                ) vinculo,
+                p.nome,
+                COALESCE(to_char(f.data_nasc, \'dd/mm/yyyy\'), \'Não consta\') AS data_nascimento,
+                CASE f.sexo
+                    WHEN \'M\' THEN \'Masculino\'
+                    WHEN \'F\' THEN \'Feminino\'
+                    ELSE \'Não consta\'
+                END AS sexo,
+                COALESCE(f.cpf::varchar, \'Não consta\') AS cpf,
+                COALESCE(d.rg, \'Não consta\') AS rg,
+                COALESCE(pm.nome, \'Não consta\') AS pessoa_mae
+            FROM cadastro.pessoa p
+            JOIN cadastro.fisica f ON f.idpes = p.idpes
+            LEFT JOIN cadastro.documento d ON d.idpes = f.idpes
+            LEFT JOIN pmieducar.aluno a ON a.ref_idpes = p.idpes AND a.ativo = 1
+            LEFT JOIN pmieducar.servidor s ON s.cod_servidor = p.idpes AND s.ativo = 1
+            LEFT JOIN cadastro.pessoa pm ON pm.idpes = f.idpes_mae
+            LEFT JOIN pmieducar.usuario u on u.cod_usuario = p.idpes
+            LEFT JOIN LATERAL (
+                SELECT idpes FROM cadastro.fisica f1 WHERE exists (
+                    SELECT 1 FROM cadastro.fisica f2 WHERE f1.idpes IN (f2.idpes_pai, f2.idpes_mae, f2.idpes_responsavel)
+                ) AND f1.idpes = f.idpes
+            ) responsavel ON TRUE
+
+            WHERE p.idpes IN (' . $pessoasIds . ') ORDER BY vinculo DESC;
+        ';
+
+        $pessoas = $this->fetchPreparedQuery($sql, [], false);
+
+        $attrs = [
+            'idpes',
+            'vinculo',
+            'nome',
+            'data_nascimento',
+            'sexo',
+            'cpf',
+            'rg',
+            'pessoa_mae',
+        ];
+
+        $filters = Portabilis_Array_Utils::filterSet($pessoas, $attrs);
+
+        foreach ($filters as &$item) {
+            if (isset($item['vinculo']) && empty($item['vinculo'])) {
+                $item['vinculo'] = 'Sem vínculo';
+            }
+        }
+
+        return [
+            'pessoas' => $filters
+        ];
+    }
+
     public function Gerar()
     {
         if ($this->isRequestFor('get', 'pessoa-search')) {
@@ -652,12 +730,16 @@ class PessoaController extends ApiCoreController
             $this->appendResponse($this->post());
         } elseif ($this->isRequestFor('get', 'info-servidor')) {
             $this->appendResponse($this->getInfoServidor());
+        } elseif ($this->isRequestFor('get', 'exist-servidor')) {
+            $this->appendResponse($this->isExistServant());
         } elseif ($this->isRequestFor('post', 'pessoa-endereco')) {
             $this->appendResponse($this->createOrUpdateEndereco());
         } elseif ($this->isRequestFor('get', 'pessoa-parent')) {
             $this->appendResponse($this->loadPessoaParent());
         } elseif ($this->isRequestFor('get', 'reativarPessoa')) {
             $this->appendResponse($this->reativarPessoa());
+        } elseif ($this->isRequestFor('get', 'dadosUnificacaoPessoa')) {
+            $this->appendResponse($this->dadosUnificacaoPessoa());
         } else {
             $this->notImplementedOperationError();
         }

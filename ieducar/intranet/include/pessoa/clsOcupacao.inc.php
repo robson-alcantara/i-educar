@@ -1,8 +1,5 @@
 <?php
 
-require_once 'include/clsBanco.inc.php';
-require_once 'include/Geral.inc.php';
-
 class clsOcupacao
 {
     public $idocup;
@@ -76,7 +73,7 @@ class clsOcupacao
      */
     public function lista($int_idocup = false, $str_descricao = false, $str_ordenacao = 'descricao', $int_limite_ini = 0, $int_limite_qtd = 20)
     {
-        // verificacoes de filtros a serem usados
+        $where = '';
         $whereAnd = 'WHERE ';
         if (is_numeric($int_idocup)) {
             $where .= "{$whereAnd}idocup = '$int_idocup'";

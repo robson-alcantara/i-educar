@@ -1,9 +1,5 @@
 <?php
 
-require_once 'CoreExt/DataMapper.php';
-require_once 'RegraAvaliacao/Model/Regra.php';
-require_once 'FormulaMedia/Model/TipoFormula.php';
-
 class RegraAvaliacao_Model_RegraDataMapper extends CoreExt_DataMapper
 {
     protected $_entityClass = 'RegraAvaliacao_Model_Regra';
@@ -32,6 +28,8 @@ class RegraAvaliacao_Model_RegraDataMapper extends CoreExt_DataMapper
         'calculaMediaRecParalela' => 'calcula_media_rec_paralela',
         'notaMaximaGeral' => 'nota_maxima_geral',
         'notaMinimaGeral' => 'nota_minima_geral',
+        'faltaMaximaGeral' => 'falta_maxima_geral',
+        'faltaMinimaGeral' => 'falta_minima_geral',
         'notaMaximaExameFinal' => 'nota_maxima_exame_final',
         'qtdCasasDecimais' => 'qtd_casas_decimais',
         'notaGeralPorEtapa' => 'nota_geral_por_etapa',
@@ -81,7 +79,6 @@ class RegraAvaliacao_Model_RegraDataMapper extends CoreExt_DataMapper
     public function getFormulaDataMapper()
     {
         if (is_null($this->_formulaDataMapper)) {
-            require_once 'FormulaMedia/Model/FormulaDataMapper.php';
             $this->setFormulaDataMapper(new FormulaMedia_Model_FormulaDataMapper());
         }
 
@@ -110,7 +107,6 @@ class RegraAvaliacao_Model_RegraDataMapper extends CoreExt_DataMapper
     public function getTabelaDataMapper()
     {
         if (is_null($this->_tabelaDataMapper)) {
-            require_once 'TabelaArredondamento/Model/TabelaDataMapper.php';
             $this->setTabelaDataMapper(
                 new TabelaArredondamento_Model_TabelaDataMapper()
             );
@@ -201,7 +197,6 @@ class RegraAvaliacao_Model_RegraDataMapper extends CoreExt_DataMapper
     public function getRegraRecuperacaoDataMapper()
     {
         if (is_null($this->_regraRecuperacaoDataMapper)) {
-            require_once 'RegraAvaliacao/Model/RegraRecuperacaoDataMapper.php';
             $this->setRegraRecuperacaoDataMapper(
                 new RegraAvaliacao_Model_RegraRecuperacaoDataMapper()
             );
